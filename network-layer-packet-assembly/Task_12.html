@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12 - Automated Packet Reassembly Module</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #1a202c 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem 0;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .author-info {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px var(--shadow);
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(99, 102, 241, 0.2);
+        }
+        
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        input, select, textarea {
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--border);
+        }
+        
+        .fragment-display {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+        
+        .fragment-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .fragment-item:hover {
+            transform: translateX(5px);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .fragment-item.received {
+            border-left-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+        
+        .fragment-item.timeout {
+            border-left-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .fragment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .fragment-id {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .fragment-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-waiting {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+        
+        .status-received {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+        
+        .status-complete {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+        
+        .status-timeout {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+        
+        .fragment-data {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .reassembly-result {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 2px solid var(--success);
+            margin-top: 1rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px rgba(34, 197, 94, 0.2);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+            }
+        }
+        
+        .reassembly-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .animation-container {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 3rem;
+            border: 2px solid var(--primary);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 700px;
+            width: 90%;
+            position: relative;
+        }
+        
+        .fragment-pieces {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 2rem 0;
+            min-height: 120px;
+            align-items: center;
+        }
+        
+        .fragment-piece {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            opacity: 0;
+            transform: scale(0.5) rotate(180deg);
+            animation: fragmentFlyIn 0.8s ease forwards;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+        
+        .fragment-piece.missing {
+            background: linear-gradient(135deg, var(--error), #dc2626);
+            animation: fragmentMissing 0.8s ease forwards;
+        }
+        
+        .fragment-piece::before {
+            content: attr(data-arrival-order);
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .fragment-piece.missing::before {
+            background: var(--error);
+            content: "✕";
+        }
+        
+        @keyframes fragmentFlyIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) rotate(180deg) translateY(-100px);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1) rotate(0deg) translateY(0);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg) translateY(0);
+            }
+        }
+        
+        @keyframes fragmentMissing {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) translateY(-50px);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1) translateY(0);
+            }
+            100% {
+                opacity: 0.7;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .assembly-arrow {
+            font-size: 2rem;
+            color: var(--primary);
+            margin: 1rem 0;
+            opacity: 0;
+            animation: arrowPulse 1s ease forwards;
+            animation-delay: var(--arrow-delay, 2s);
+        }
+        
+        @keyframes arrowPulse {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .assembled-packet {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            opacity: 0;
+            transform: scale(0.8);
+            animation: packetAssemble 1s ease forwards;
+            animation-delay: var(--packet-delay, 3s);
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        @keyframes packetAssemble {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .success-checkmark {
+            font-size: 4rem;
+            color: var(--success);
+            opacity: 0;
+            animation: checkmarkPop 0.6s ease forwards;
+            animation-delay: var(--checkmark-delay, 4s);
+            margin: 1rem 0;
+        }
+        
+        @keyframes checkmarkPop {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.3);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .typing-text {
+            font-family: 'Courier New', monospace;
+            border-right: 2px solid var(--primary);
+            white-space: nowrap;
+            overflow: hidden;
+            animation: typing 2s steps(40) 1s forwards, blink 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+        
+        @keyframes blink {
+            from, to {
+                border-color: transparent;
+            }
+            50% {
+                border-color: var(--primary);
+            }
+        }
+        
+        .close-animation {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+            animation-delay: var(--close-delay, 5s);
+        }
+        
+        .close-animation:hover {
+            color: var(--text-primary);
+            transform: scale(1.2);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .log-area {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+        
+        .log-info {
+            color: var(--primary);
+        }
+        
+        .log-success {
+            color: var(--success);
+        }
+        
+        .log-warning {
+            color: var(--warning);
+        }
+        
+        .log-error {
+            color: var(--error);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+        
+        .arrival-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            animation: pulse 0.5s ease;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Automated Packet Reassembly Module</h1>
+            <p class="subtitle">Simulate receiver-side intelligent packet reassembly with buffering and timeout handling</p>
+            <p class="author-info">Task 12 - Manav Group 7</p>
+        </header>
+        
+        <div class="main-grid">
+            <div class="card">
+                <h2>📡 Fragment Simulation Controls</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="packetId">Packet Identification</label>
+                        <input type="number" id="packetId" value="12345" min="1" max="65535">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="totalFragments">Total Fragments</label>
+                        <input type="number" id="totalFragments" value="5" min="2" max="20">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="packetData">Original Data</label>
+                        <textarea id="packetData" rows="3" placeholder="Enter the original message to be fragmented...">Hello World! This is a test message that will be fragmented into multiple packets for reassembly simulation. Each fragment will contain a portion of this data.</textarea>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="timeout">Reassembly Timeout (ms)</label>
+                        <input type="number" id="timeout" value="5000" min="1000" max="30000" step="1000">
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn-primary" onclick="generateFragments()">🧩 Generate Fragments</button>
+                        <button class="btn-secondary" onclick="clearFragments()">🗑️ Clear</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📦 Fragment Buffer</h2>
+                <div id="fragmentDisplay" class="fragment-display">
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 2rem;">
+                        No fragments generated yet. Use controls to create fragments.
+                    </p>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressBar" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="progressText" style="text-align: center; color: var(--text-secondary); margin-top: 0.5rem;">
+                    Reassembly Progress: 0%
+                </p>
+            </div>
+            
+            <div class="card">
+                <h2>🎮 Simulation Actions</h2>
+                <div class="controls">
+                    <button class="btn-primary" onclick="sendRandomFragment()" disabled id="sendBtn">
+                        📤 Send Random Fragment
+                    </button>
+                    <button class="btn-secondary" onclick="sendAllFragments()" disabled id="sendAllBtn">
+                        🚀 Send All Fragments
+                    </button>
+                    <!-- <button class="btn-secondary" onclick="simulatePacketLoss()" disabled id="lossBtn">
+                        💥 Simulate Packet Loss
+                    </button> -->
+                    <button class="btn-secondary" onclick="startReassembly()" disabled id="reassembleBtn">
+                        ⚡ Start Reassembly Process
+                    </button>
+                </div>
+                
+                <div id="reassemblyResult" style="display: none;"></div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 Statistics</h2>
+                <div class="statistics">
+                    <div class="stat-card">
+                        <div id="totalFragsStat" class="stat-value">0</div>
+                        <div class="stat-label">Total Fragments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="receivedFragsStat" class="stat-value">0</div>
+                        <div class="stat-label">Received</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="lostFragsStat" class="stat-value">0</div>
+                        <div class="stat-label">Lost</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="timeoutsStat" class="stat-value">0</div>
+                        <div class="stat-label">Timeouts</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card full-width">
+                <h2>📋 Reassembly Log</h2>
+                <div id="logArea" class="log-area">
+                    <div class="log-entry log-info">[INFO] Automated Packet Reassembly Module initialized</div>
+                    <div class="log-entry log-info">[INFO] Ready to receive fragments...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PacketReassembler {
+            constructor() {
+                this.fragments = new Map();
+                this.packetBuffers = new Map();
+                this.timeouts = new Map();
+                this.stats = {
+                    totalFragments: 0,
+                    receivedFragments: 0,
+                    lostFragments: 0,
+                    timeoutCount: 0
+                };
+                this.currentPacketId = null;
+                this.expectedFragments = 0;
+                this.reassemblyTimeout = 5000;
+                this.arrivalOrder = [];
+                this.receivedFragments = new Set();
+            }
+            
+            log(message, type = 'info') {
+                const logArea = document.getElementById('logArea');
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+                logArea.appendChild(entry);
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+            
+            generateFragments(packetId, data, numFragments) {
+                this.currentPacketId = packetId;
+                this.expectedFragments = numFragments;
+                this.fragments.clear();
+                this.packetBuffers.set(packetId, new Map());
+                this.arrivalOrder = [];
+                this.receivedFragments.clear();
+                
+                const fragmentSize = Math.ceil(data.length / numFragments);
+                const fragments = [];
+                
+                for (let i = 0; i < numFragments; i++) {
+                    const start = i * fragmentSize;
+                    const end = Math.min(start + fragmentSize, data.length);
+                    const fragmentData = data.substring(start, end);
+                    
+                    const fragment = {
+                        packetId: packetId,
+                        fragmentId: i,
+                        totalFragments: numFragments,
+                        data: fragmentData,
+                        offset: start,
+                        length: end - start,
+                        moreFragments: i < numFragments - 1,
+                        status: 'waiting',
+                        timestamp: Date.now(),
+                        arrivalOrder: null
+                    };
+                    
+                    fragments.push(fragment);
+                    this.fragments.set(i, fragment);
+                }
+                
+                this.stats.totalFragments = numFragments;
+                this.stats.receivedFragments = 0;
+                this.stats.lostFragments = 0;
+                this.updateStatistics();
+                this.displayFragments();
+                this.log(`Generated ${numFragments} fragments for packet ID ${packetId}`);
+                
+                return fragments;
+            }
+            
+            receiveFragment(fragmentId) {
+                if (!this.fragments.has(fragmentId)) {
+                    this.log(`Fragment ${fragmentId} not found`, 'error');
+                    return false;
+                }
+                
+                const fragment = this.fragments.get(fragmentId);
+                
+                if (fragment.status === 'received') {
+                    this.log(`Fragment ${fragmentId} already received`, 'warning');
+                    return false;
+                }
+                
+                const packetId = fragment.packetId;
+                
+                if (!this.packetBuffers.has(packetId)) {
+                    this.packetBuffers.set(packetId, new Map());
+                    this.startTimeout(packetId);
+                }
+                
+                const buffer = this.packetBuffers.get(packetId);
+                buffer.set(fragmentId, fragment);
+                fragment.status = 'received';
+                
+                // Track arrival order
+                this.arrivalOrder.push(fragmentId);
+                fragment.arrivalOrder = this.arrivalOrder.length;
+                this.receivedFragments.add(fragmentId);
+                
+                this.stats.receivedFragments++;
+                this.updateStatistics();
+                this.displayFragments();
+                this.updateProgress();
+                
+                this.log(`Received fragment ${fragmentId} for packet ${packetId} (arrival #${fragment.arrivalOrder}): "${fragment.data.substring(0, 20)}${fragment.data.length > 20 ? '...' : ''}"`);
+                
+                // Add visual indicator for newly received fragment
+                this.addArrivalIndicator(fragmentId);
+                
+                // Check if all fragments received
+                if (buffer.size === fragment.totalFragments) {
+                    this.log('All fragments received! Ready for reassembly.', 'success');
+                    setTimeout(() => {
+                        this.completeReassembly(packetId);
+                    }, 1000); // Small delay to show the completion
+                }
+                
+                return true;
+            }
+            
+            addArrivalIndicator(fragmentId) {
+                // Add visual feedback for received fragment
+                setTimeout(() => {
+                    const fragmentItems = document.querySelectorAll('.fragment-item');
+                    fragmentItems.forEach(item => {
+                        const idText = item.querySelector('.fragment-id').textContent;
+                        if (idText.includes(fragmentId.toString())) {
+                            item.classList.add('received');
+                            
+                            // Add arrival order indicator
+                            const fragment = this.fragments.get(fragmentId);
+                            if (fragment && fragment.arrivalOrder) {
+                                const indicator = document.createElement('div');
+                                indicator.className = 'arrival-indicator';
+                                indicator.textContent = fragment.arrivalOrder;
+                                item.style.position = 'relative';
+                                item.appendChild(indicator);
+                            }
+                        }
+                    });
+                }, 100);
+            }
+            
+            startTimeout(packetId) {
+                if (this.timeouts.has(packetId)) {
+                    clearTimeout(this.timeouts.get(packetId));
+                }
+                
+                const timeoutId = setTimeout(() => {
+                    this.handleTimeout(packetId);
+                }, this.reassemblyTimeout);
+                
+                this.timeouts.set(packetId, timeoutId);
+                this.log(`Started reassembly timeout for packet ${packetId} (${this.reassemblyTimeout}ms)`);
+            }
+            
+            handleTimeout(packetId) {
+                if (this.packetBuffers.has(packetId)) {
+                    const buffer = this.packetBuffers.get(packetId);
+                    const receivedCount = buffer.size;
+                    const totalCount = this.expectedFragments;
+                    
+                    this.stats.timeoutCount++;
+                    this.stats.lostFragments = totalCount - receivedCount;
+                    this.updateStatistics();
+                    
+                    this.log(`Timeout occurred for packet ${packetId}. Received ${receivedCount}/${totalCount} fragments`, 'warning');
+                    
+                    // Mark missing fragments as timeout
+                    for (let i = 0; i < totalCount; i++) {
+                        if (this.fragments.has(i) && !buffer.has(i)) {
+                            this.fragments.get(i).status = 'timeout';
+                        }
+                    }
+                    
+                    this.displayFragments();
+                    this.showTimeoutResult(packetId, receivedCount, totalCount);
+                }
+            }
+            
+            completeReassembly(packetId) {
+                if (this.timeouts.has(packetId)) {
+                    clearTimeout(this.timeouts.get(packetId));
+                    this.timeouts.delete(packetId);
+                }
+                
+                const buffer = this.packetBuffers.get(packetId);
+                const sortedFragments = Array.from(buffer.values())
+                    .sort((a, b) => a.fragmentId - b.fragmentId);
+                
+                let reassembledData = '';
+                for (const fragment of sortedFragments) {
+                    reassembledData += fragment.data;
+                    fragment.status = 'complete';
+                }
+                
+                this.displayFragments();
+                this.updateProgress();
+                
+                // Show animated reassembly with realistic packet arrival simulation
+                this.showAnimatedReassembly(packetId, sortedFragments, reassembledData);
+                
+                this.log(`Successfully reassembled packet ${packetId}`, 'success');
+                this.log(`Reassembled data: "${reassembledData.substring(0, 50)}${reassembledData.length > 50 ? '...' : ''}"`, 'success');
+            }
+            
+            showAnimatedReassembly(packetId, fragments, finalData) {
+                // Create animation overlay
+                const overlay = document.createElement('div');
+                overlay.className = 'reassembly-animation';
+                
+                const container = document.createElement('div');
+                container.className = 'animation-container';
+                
+                // Close button
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'close-animation';
+                closeBtn.innerHTML = '×';
+                
+                let animationStep = 0;
+                const totalSteps = fragments.length + 3; // fragments + arrow + packet + checkmark
+                const stepDelay = 800; // ms between steps
+                
+                // Calculate animation delays
+                const arrowDelay = fragments.length * 0.3 + 1;
+                const packetDelay = arrowDelay + 1;
+                const checkmarkDelay = packetDelay + 1;
+                const closeDelay = checkmarkDelay + 1;
+                
+                container.style.setProperty('--arrow-delay', `${arrowDelay}s`);
+                container.style.setProperty('--packet-delay', `${packetDelay}s`);
+                container.style.setProperty('--checkmark-delay', `${checkmarkDelay}s`);
+                container.style.setProperty('--close-delay', `${closeDelay}s`);
+                
+                closeBtn.onclick = () => {
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                        this.showSuccessResult(packetId, finalData);
+                    }
+                };
+                
+                container.innerHTML = `
+                    <h2 style="color: var(--primary); margin-bottom: 1rem;">⚡ Packet Reassembly Process</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Packet ID: ${packetId}</p>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.9rem;">
+                        Simulating realistic packet arrival order and reassembly
+                    </p>
+                    
+                    <div class="fragment-pieces" id="animationFragments"></div>
+                    
+                    <div class="assembly-arrow">⬇ REASSEMBLY ⬇</div>
+                    
+                    <div class="assembled-packet">
+                        <strong>📦 Successfully Reassembled Packet</strong><br>
+                        <div style="margin-top: 0.8rem; font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.4;">
+                            "${finalData.length > 80 ? finalData.substring(0, 80) + '...' : finalData}"
+                        </div>
+                        <div style="margin-top: 0.8rem; font-size: 0.8rem; opacity: 0.9; display: flex; justify-content: space-between;">
+                            <span>Length: ${finalData.length} bytes</span>
+                            <span>Fragments: ${fragments.length}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="success-checkmark">✅</div>
+                    
+                    <p style="color: var(--success); font-weight: 600; opacity: 0; animation: fadeIn 0.5s ease forwards; animation-delay: ${closeDelay}s;">
+                        Reassembly Complete! Click × to continue.
+                    </p>
+                `;
+                
+                container.appendChild(closeBtn);
+                overlay.appendChild(container);
+                document.body.appendChild(overlay);
+                
+                // Animate fragments in arrival order (not sequential order)
+                const fragmentContainer = container.querySelector('#animationFragments');
+                const receivedFragments = fragments.filter(f => this.receivedFragments.has(f.fragmentId));
+                const missingFragments = fragments.filter(f => !this.receivedFragments.has(f.fragmentId));
+                
+                // Sort received fragments by arrival order
+                receivedFragments.sort((a, b) => (a.arrivalOrder || 0) - (b.arrivalOrder || 0));
+                
+                // Animate received fragments in arrival order
+                receivedFragments.forEach((fragment, index) => {
+                    setTimeout(() => {
+                        const piece = document.createElement('div');
+                        piece.className = 'fragment-piece';
+                        piece.style.animationDelay = `${index * 0.3}s`;
+                        piece.setAttribute('data-arrival-order', fragment.arrivalOrder || (index + 1));
+                        piece.innerHTML = `
+                            <div style="font-weight: bold;">Fragment ${fragment.fragmentId}</div>
+                            <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.2rem;">
+                                Arrived #${fragment.arrivalOrder || (index + 1)}
+                            </div>
+                        `;
+                        fragmentContainer.appendChild(piece);
+                    }, 500 + (index * 300));
+                });
+                
+                // Show missing fragments (if any) with different styling
+                missingFragments.forEach((fragment, index) => {
+                    setTimeout(() => {
+                        const piece = document.createElement('div');
+                        piece.className = 'fragment-piece missing';
+                        piece.style.animationDelay = `${(receivedFragments.length + index) * 0.3}s`;
+                        piece.innerHTML = `
+                            <div style="font-weight: bold;">Fragment ${fragment.fragmentId}</div>
+                            <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.2rem;">
+                                Lost/Timeout
+                            </div>
+                        `;
+                        fragmentContainer.appendChild(piece);
+                    }, 500 + ((receivedFragments.length + index) * 300));
+                });
+                
+                // Auto-close after animation completes
+                const totalAnimationTime = (closeDelay + 2) * 1000;
+                setTimeout(() => {
+                    if (document.body.contains(overlay)) {
+                        closeBtn.click();
+                    }
+                }, totalAnimationTime);
+            }
+            
+            simulatePacketLoss() {
+                const fragmentIds = Array.from(this.fragments.keys()).filter(id => 
+                    this.fragments.get(id).status === 'waiting'
+                );
+                
+                if (fragmentIds.length === 0) {
+                    this.log('No waiting fragments to lose', 'warning');
+                    return [];
+                }
+                
+                const lossCount = Math.max(1, Math.floor(fragmentIds.length * 0.2)); // Lose 20% of remaining packets
+                const lostFragments = [];
+                
+                for (let i = 0; i < lossCount; i++) {
+                    if (fragmentIds.length === 0) break;
+                    
+                    const randomIndex = Math.floor(Math.random() * fragmentIds.length);
+                    const fragmentId = fragmentIds.splice(randomIndex, 1)[0];
+                    lostFragments.push(fragmentId);
+                    
+                    // Mark as lost (but don't change status yet - that happens on timeout)
+                    this.log(`Fragment ${fragmentId} marked for loss`, 'warning');
+                }
+                
+                this.log(`Simulated packet loss for ${lossCount} fragments: [${lostFragments.join(', ')}]`, 'warning');
+                
+                return lostFragments;
+            }
+            
+            updateProgress() {
+                const receivedCount = this.stats.receivedFragments;
+                const totalCount = this.stats.totalFragments;
+                const percentage = totalCount > 0 ? Math.round((receivedCount / totalCount) * 100) : 0;
+                
+                document.getElementById('progressBar').style.width = percentage + '%';
+                document.getElementById('progressText').textContent = `Reassembly Progress: ${percentage}% (${receivedCount}/${totalCount} fragments received)`;
+            }
+            
+            displayFragments() {
+                const display = document.getElementById('fragmentDisplay');
+                if (this.fragments.size === 0) {
+                    display.innerHTML = '<p style="color: var(--text-secondary); text-align: center; margin-top: 2rem;">No fragments generated yet. Use controls to create fragments.</p>';
+                    return;
+                }
+                
+                let html = '';
+                for (const [id, fragment] of this.fragments) {
+                    const statusClass = `status-${fragment.status}`;
+                    const statusText = fragment.status.charAt(0).toUpperCase() + fragment.status.slice(1);
+                    
+                    let arrivalInfo = '';
+                    if (fragment.status === 'received' && fragment.arrivalOrder) {
+                        arrivalInfo = ` (Arrival #${fragment.arrivalOrder})`;
+                    }
+                    
+                    html += `
+                        <div class="fragment-item ${fragment.status}" id="fragment-${id}">
+                            <div class="fragment-header">
+                                <span class="fragment-id">Fragment ${id}${arrivalInfo}</span>
+                                <span class="fragment-status ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="fragment-data">
+                                Offset: ${fragment.offset}, Length: ${fragment.length}<br>
+                                Data: "${fragment.data.length > 30 ? fragment.data.substring(0, 30) + '...' : fragment.data}"
+                                ${fragment.status === 'received' ? `<br><small style="color: var(--success);">✓ Received at ${new Date(fragment.timestamp).toLocaleTimeString()}</small>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                display.innerHTML = html;
+            }
+            
+            updateStatistics() {
+                document.getElementById('totalFragsStat').textContent = this.stats.totalFragments;
+                document.getElementById('receivedFragsStat').textContent = this.stats.receivedFragments;
+                document.getElementById('lostFragsStat').textContent = this.stats.lostFragments;
+                document.getElementById('timeoutsStat').textContent = this.stats.timeoutCount;
+            }
+            
+            showSuccessResult(packetId, data) {
+                const resultDiv = document.getElementById('reassemblyResult');
+                resultDiv.className = 'reassembly-result';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3 style="color: var(--success); margin-bottom: 1rem;">✅ Reassembly Successful!</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div><strong>Packet ID:</strong> ${packetId}</div>
+                        <div><strong>Total Length:</strong> ${data.length} bytes</div>
+                        <div><strong>Fragments:</strong> ${this.expectedFragments}</div>
+                        <div><strong>Success Rate:</strong> 100%</div>
+                    </div>
+                    <p><strong>Arrival Order:</strong> ${this.arrivalOrder.join(' → ')}</p>
+                    <p style="margin-top: 1rem;"><strong>Reassembled Data:</strong></p>
+                    <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; margin-top: 0.5rem; font-family: 'Courier New', monospace; word-break: break-all; line-height: 1.4;">
+                        "${data}"
+                    </div>
+                `;
+            }
+            
+            showTimeoutResult(packetId, received, total) {
+                const resultDiv = document.getElementById('reassemblyResult');
+                resultDiv.className = 'reassembly-result';
+                resultDiv.style.borderColor = 'var(--warning)';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3 style="color: var(--warning); margin-bottom: 1rem;">⚠️ Reassembly Timeout</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div><strong>Packet ID:</strong> ${packetId}</div>
+                        <div><strong>Fragments Received:</strong> ${received}/${total}</div>
+                        <div><strong>Success Rate:</strong> ${Math.round((received/total)*100)}%</div>
+                        <div><strong>Status:</strong> <span style="color: var(--error);">Failed</span></div>
+                    </div>
+                    <p><strong>Received Order:</strong> ${this.arrivalOrder.length > 0 ? this.arrivalOrder.join(' → ') : 'None'}</p>
+                    <p style="margin-top: 1rem;"><strong>Action:</strong> Packet discarded, higher layer notified of reassembly failure</p>
+                `;
+            }
+            
+            reset() {
+                this.fragments.clear();
+                this.packetBuffers.clear();
+                this.timeouts.forEach(timeout => clearTimeout(timeout));
+                this.timeouts.clear();
+                this.arrivalOrder = [];
+                this.receivedFragments.clear();
+                this.stats = {
+                    totalFragments: 0,
+                    receivedFragments: 0,
+                    lostFragments: 0,
+                    timeoutCount: 0
+                };
+                this.currentPacketId = null;
+                this.expectedFragments = 0;
+                
+                this.displayFragments();
+                this.updateStatistics();
+                this.updateProgress();
+                
+                const resultDiv = document.getElementById('reassemblyResult');
+                resultDiv.style.display = 'none';
+                
+                this.log('System reset - all buffers cleared', 'info');
+            }
+        }
+        
+        // Global reassembler instance
+        const reassembler = new PacketReassembler();
+        let generatedFragments = [];
+        
+        function generateFragments() {
+            const packetId = parseInt(document.getElementById('packetId').value);
+            const totalFragments = parseInt(document.getElementById('totalFragments').value);
+            const packetData = document.getElementById('packetData').value;
+            const timeout = parseInt(document.getElementById('timeout').value);
+            
+            if (!packetData.trim()) {
+                alert('Please enter some data to fragment!');
+                return;
+            }
+            
+            if (totalFragments < 2 || totalFragments > 20) {
+                alert('Total fragments must be between 2 and 20!');
+                return;
+            }
+            
+            reassembler.reassemblyTimeout = timeout;
+            generatedFragments = reassembler.generateFragments(packetId, packetData, totalFragments);
+            
+            // Enable buttons
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('sendAllBtn').disabled = false;
+            document.getElementById('lossBtn').disabled = false;
+            document.getElementById('reassembleBtn').disabled = false;
+        }
+        
+        function sendRandomFragment() {
+            const availableFragments = Array.from(reassembler.fragments.keys()).filter(id => 
+                reassembler.fragments.get(id).status === 'waiting'
+            );
+            
+            if (availableFragments.length === 0) {
+                reassembler.log('No more fragments available to send', 'warning');
+                return;
+            }
+            
+            const randomFragmentId = availableFragments[Math.floor(Math.random() * availableFragments.length)];
+            
+            // Add random network delay (100-800ms)
+            const networkDelay = 100 + Math.random() * 700;
+            
+            setTimeout(() => {
+                if (reassembler.fragments.get(randomFragmentId).status === 'waiting') {
+                    reassembler.receiveFragment(randomFragmentId);
+                }
+            }, networkDelay);
+            
+            reassembler.log(`Transmitting fragment ${randomFragmentId} (network delay: ${Math.round(networkDelay)}ms)`, 'info');
+        }
+        
+        function sendAllFragments() {
+            const availableFragments = Array.from(reassembler.fragments.keys()).filter(id => 
+                reassembler.fragments.get(id).status === 'waiting'
+            );
+            
+            if (availableFragments.length === 0) {
+                reassembler.log('No fragments available to send', 'warning');
+                return;
+            }
+            
+            reassembler.log(`Transmitting all ${availableFragments.length} remaining fragments with random delays...`, 'info');
+            
+            // Shuffle array to simulate random arrival order
+            const shuffledFragments = [...availableFragments].sort(() => Math.random() - 0.5);
+            
+            shuffledFragments.forEach((fragmentId, index) => {
+                // Random network delay between 200ms to 2000ms
+                const networkDelay = 200 + Math.random() * 1800;
+                
+                setTimeout(() => {
+                    if (reassembler.fragments.has(fragmentId) && 
+                        reassembler.fragments.get(fragmentId).status === 'waiting') {
+                        reassembler.receiveFragment(fragmentId);
+                    }
+                }, networkDelay);
+            });
+        }
+        
+        function simulatePacketLoss() {
+            const lostFragments = reassembler.simulatePacketLoss();
+            if (lostFragments.length === 0) {
+                return;
+            }
+            
+            // Visual feedback for lost fragments
+            setTimeout(() => {
+                lostFragments.forEach(fragmentId => {
+                    const fragmentElement = document.getElementById(`fragment-${fragmentId}`);
+                    if (fragmentElement) {
+                        fragmentElement.style.opacity = '0.5';
+                        fragmentElement.style.border = '1px dashed var(--error)';
+                    }
+                });
+            }, 100);
+        }
+        
+        function startReassembly() {
+            if (!reassembler.currentPacketId) {
+                reassembler.log('No packet to reassemble. Generate fragments first.', 'error');
+                return;
+            }
+            
+            reassembler.log('Manual reassembly process initiated...', 'info');
+            
+            const buffer = reassembler.packetBuffers.get(reassembler.currentPacketId);
+            if (!buffer) {
+                reassembler.log('No fragments received yet for reassembly', 'warning');
+                return;
+            }
+            
+            const receivedCount = buffer.size;
+            const totalCount = reassembler.expectedFragments;
+            
+            if (receivedCount === totalCount) {
+                // Complete reassembly
+                showReassemblyLoading(() => {
+                    reassembler.completeReassembly(reassembler.currentPacketId);
+                });
+            } else {
+                // Show partial reassembly attempt
+                reassembler.log(`Attempting reassembly with ${receivedCount}/${totalCount} fragments...`, 'warning');
+                
+                setTimeout(() => {
+                    if (receivedCount >= Math.ceil(totalCount * 0.6)) {
+                        // If we have at least 60% of fragments, show partial reassembly
+                        showPartialReassemblyAnimation(reassembler.currentPacketId, receivedCount, totalCount);
+                    } else {
+                        // Too few fragments for any reassembly
+                        reassembler.log(`Insufficient fragments for reassembly (${receivedCount}/${totalCount})`, 'error');
+                        showTimeoutAnimation(reassembler.currentPacketId, receivedCount, totalCount);
+                    }
+                }, 1000);
+            }
+        }
+        
+        function showReassemblyLoading(callback) {
+            const overlay = document.createElement('div');
+            overlay.className = 'reassembly-animation';
+            
+            const container = document.createElement('div');
+            container.className = 'animation-container';
+            container.innerHTML = `
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">🔧 Initializing Reassembly Process...</h2>
+                <div class="loading-spinner" style="margin: 2rem auto;"></div>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Analyzing fragment buffer...</p>
+                <p class="typing-text" style="width: 0; margin: 0 auto;">Validating fragment integrity and order...</p>
+            `;
+            
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+            
+            // Remove loading and trigger actual reassembly after 2 seconds
+            setTimeout(() => {
+                document.body.removeChild(overlay);
+                callback();
+            }, 2000);
+        }
+        
+        function showPartialReassemblyAnimation(packetId, received, total) {
+            const overlay = document.createElement('div');
+            overlay.className = 'reassembly-animation';
+            
+            const container = document.createElement('div');
+            container.className = 'animation-container';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-animation';
+            closeBtn.innerHTML = '×';
+            closeBtn.style.animationDelay = '4s';
+            closeBtn.onclick = () => {
+                document.body.removeChild(overlay);
+                reassembler.showTimeoutResult(packetId, received, total);
+            };
+            
+            container.innerHTML = `
+                <h2 style="color: var(--warning); margin-bottom: 1rem;">⚠️ Partial Reassembly Attempt</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">Packet ID: ${packetId}</p>
+                
+                <div style="margin: 2rem 0;">
+                    <div style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;">🔧</div>
+                    <p style="color: var(--warning); font-weight: 600;">
+                        Attempting Reassembly with Incomplete Data
+                    </p>
+                    <p style="color: var(--text-secondary); margin-top: 1rem;">
+                        Available: ${received}/${total} fragments (${Math.round((received/total)*100)}%)
+                    </p>
+                </div>
+                
+                <div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid var(--warning); margin: 1rem 0;">
+                    <p style="color: var(--warning); font-size: 0.9rem;">
+                        ⚠️ Reassembly failed due to missing fragments<br>
+                        Insufficient data for complete packet reconstruction<br>
+                        Packet will be discarded after timeout
+                    </p>
+                </div>
+            `;
+            
+            container.appendChild(closeBtn);
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    closeBtn.click();
+                }
+            }, 5000);
+        }
+        
+        function showTimeoutAnimation(packetId, received, total) {
+            const overlay = document.createElement('div');
+            overlay.className = 'reassembly-animation';
+            
+            const container = document.createElement('div');
+            container.className = 'animation-container';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-animation';
+            closeBtn.innerHTML = '×';
+            closeBtn.style.animationDelay = '4s';
+            closeBtn.onclick = () => {
+                document.body.removeChild(overlay);
+                reassembler.handleTimeout(packetId);
+            };
+            
+            container.innerHTML = `
+                <h2 style="color: var(--error); margin-bottom: 1rem;">⏰ Reassembly Timeout</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">Packet ID: ${packetId}</p>
+                
+                <div style="margin: 2rem 0;">
+                    <div style="font-size: 3rem; color: var(--error); margin-bottom: 1rem;">⏰</div>
+                    <p style="color: var(--error); font-weight: 600;">
+                        Reassembly Timeout Reached
+                    </p>
+                    <p style="color: var(--text-secondary); margin-top: 1rem;">
+                        Received: ${received}/${total} fragments before timeout
+                    </p>
+                </div>
+                
+                <div style="background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid var(--error);">
+                    <p style="color: var(--error); font-size: 0.9rem;">
+                        ❌ Packet reassembly failed<br>
+                        Missing fragments exceeded timeout threshold<br>
+                        Packet buffer will be discarded
+                    </p>
+                </div>
+            `;
+            
+            container.appendChild(closeBtn);
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    closeBtn.click();
+                }
+            }, 5000);
+        }
+        
+        function clearFragments() {
+            reassembler.reset();
+            generatedFragments = [];
+            
+            // Disable buttons
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('sendAllBtn').disabled = true;
+            document.getElementById('lossBtn').disabled = true;
+            document.getElementById('reassembleBtn').disabled = true;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial button states
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('sendAllBtn').disabled = true;
+            document.getElementById('lossBtn').disabled = true;
+            document.getElementById('reassembleBtn').disabled = true;
+            
+            reassembler.log('Automated Packet Reassembly Module loaded successfully', 'success');
+            reassembler.log('System ready for fragment processing', 'info');
+        });
+    </script>
+</body>
+</html>
