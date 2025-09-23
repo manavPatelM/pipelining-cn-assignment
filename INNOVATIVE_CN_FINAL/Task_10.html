@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Network to Data Link Layer Simulation</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+    .box { background:#fff; padding:15px; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+    label { display:block; margin-top:10px; }
+    input, textarea { width:100%; padding:6px; margin-top:4px; }
+    button { margin-top:12px; padding:8px 15px; border:none; border-radius:5px; background:#0077ff; color:#fff; cursor:pointer; }
+    .header { background:#222; color:#0f0; padding:10px; border-radius:8px; margin-top:10px; font-family: monospace; white-space:pre; }
+    h3 { margin-top:0; }
+  </style>
+</head>
+<body>
+
+  <h2>Attach Network Headers and Forward Frame (Task 10)</h2>
+
+  <div class="box">
+    <label>Payload</label>
+    <textarea id="payload">Hello, Network!</textarea>
+
+    <label>Source IP</label>
+    <input id="srcIp" value="192.168.1.10">
+
+    <label>Destination IP</label>
+    <input id="dstIp" value="10.0.0.5">
+
+    <label>Protocol</label>
+    <input id="protocol" value="TCP">
+
+    <label>TTL</label>
+    <input id="ttl" value="64">
+
+    <label>Source MAC</label>
+    <input id="srcMac" value="DE:AD:BE:EF:00:01">
+
+    <label>Destination MAC</label>
+    <input id="dstMac" value="AA:BB:CC:11:22:33">
+
+    <button onclick="simulate()">Forward to Data Link Layer</button>
+  </div>
+
+  <div class="box">
+    <h3>Simulation Output</h3>
+    <div id="ipHeader" class="header"></div>
+    <div id="ethHeader" class="header"></div>
+    <div id="finalFrame" class="header"></div>
+  </div>
+
+  <script>
+    function simulate() {
+      // Collect inputs
+      const payload = document.getElementById("payload").value;
+      const srcIp = document.getElementById("srcIp").value;
+      const dstIp = document.getElementById("dstIp").value;
+      const protocol = document.getElementById("protocol").value;
+      const ttl = document.getElementById("ttl").value;
+      const srcMac = document.getElementById("srcMac").value;
+      const dstMac = document.getElementById("dstMac").value;
+
+      // Step 1: Create a simple IP header
+      const ipHeader = {
+        "Version": 4,
+        "Header Length": "20 bytes",
+        "Source IP": srcIp,
+        "Destination IP": dstIp,
+        "Protocol": protocol,
+        "TTL": ttl
+      };
+
+      // Step 2: Encapsulate inside Ethernet frame
+      const ethernetHeader = {
+        "Destination MAC": dstMac,
+        "Source MAC": srcMac,
+        "EtherType": "0x0800 (IPv4)"
+      };
+
+      const ethernetFrame = {
+        "Ethernet Header": ethernetHeader,
+        "Payload": {
+          "IP Header": ipHeader,
+          "Data": payload
+        }
+      };
+
+      // Step 3: Display result clearly
+      document.getElementById("ipHeader").textContent =
+        "=== IP Header (Network Layer) ===\n" +
+        JSON.stringify(ipHeader, null, 2);
+
+      document.getElementById("ethHeader").textContent =
+        "=== Ethernet Header (Data Link Layer) ===\n" +
+        JSON.stringify(ethernetHeader, null, 2);
+
+      document.getElementById("finalFrame").textContent =
+        ">>> Frame forwarded to Data Link Layer\n\n" +
+        JSON.stringify(ethernetFrame, null, 2);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Packet Reassembly Simulator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f6fa;
+      color: #222;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #3498db;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: calc(100% - 12px);
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: none;
+      background: #3498db;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .packet-block {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+
+    .packet-header {
+      font-weight: bold;
+      color: #e67e22;
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+
+    .fragment {
+      margin: 4px 0;
+      padding: 6px;
+      border-radius: 6px;
+      background: #ecf0f1;
+      font-family: monospace;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .mf-0 {
+      border-left: 4px solid #2ecc71;
+      padding-left: 6px;
+    }
+
+    .mf-1 {
+      border-left: 4px solid #3498db;
+      padding-left: 6px;
+    }
+
+    .output-success {
+      color: #2ecc71;
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .output-error {
+      color: #e74c3c;
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Packet Reassembly Simulator</h1>
+
+    <!-- Step 1 -->
+    <div class="panel">
+      <h3>Step 1: Add Fragment</h3>
+      <label>Packet ID:</label>
+      <input type="number" id="packetId">
+
+      <label>Offset:</label>
+      <input type="number" id="offset">
+
+      <label>Data:</label>
+      <input type="text" id="data">
+
+      <label>MF (0=last, 1=more):</label>
+      <input type="number" id="mf">
+
+      <button onclick="addFragment()">Add Fragment</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="panel">
+      <h3>Step 2: Fragmentation Pool</h3>
+      <div id="poolDisplay">No fragments yet.</div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="panel">
+      <h3>Step 3: Manual Reassembly</h3>
+      <label>Packet ID to Reassemble:</label>
+      <input type="number" id="reassembleId">
+      <button onclick="manualReassemble()">Reassemble</button>
+      <div id="outputDisplay">No packets reassembled yet.</div>
+    </div>
+  </div>
+
+  <script>
+    class Fragment {
+      constructor(packetId, offset, data, moreFragments) {
+        this.packetId = packetId;
+        this.offset = offset;
+        this.data = data;
+        this.moreFragments = moreFragments;
+      }
+    }
+
+    class ReassemblyPool {
+      constructor() {
+        this.pool = {};
+      }
+
+      addFragment(fragment) {
+        if (!this.pool[fragment.packetId]) {
+          this.pool[fragment.packetId] = [];
+        }
+        this.pool[fragment.packetId].push(fragment);
+      }
+
+      reassemble(packetId) {
+        let fragments = this.pool[packetId];
+        if (!fragments || fragments.length === 0) {
+          return { packetId, message: null, efficiency: 0, error: "No such packet in pool" };
+        }
+
+        fragments.sort((a, b) => a.offset - b.offset);
+        let lastFragment = fragments.find(f => f.moreFragments === 0);
+        if (!lastFragment) {
+          return { packetId, message: null, efficiency: 0, error: "Last fragment missing" };
+        }
+
+        let totalSize = lastFragment.offset + lastFragment.data.length;
+        let reassembled = new Array(totalSize).fill(null);
+        let filledCount = 0;
+
+        for (let frag of fragments) {
+          let start = frag.offset;
+          for (let i = 0; i < frag.data.length; i++) {
+            if (reassembled[start + i] === null) {
+              reassembled[start + i] = frag.data[i];
+              filledCount++;
+            }
+          }
+        }
+
+        let efficiency = Math.min((filledCount / totalSize) * 100, 100).toFixed(2);
+
+        if (reassembled.every(v => v !== null)) {
+          delete this.pool[packetId];
+          return { packetId, message: reassembled.join(""), efficiency, error: null };
+        } else {
+          return { packetId, message: null, efficiency, error: "Packet incomplete" };
+        }
+      }
+
+      displayPool() {
+        let html = "";
+        for (let [pid, frags] of Object.entries(this.pool)) {
+          html += `<div class="packet-block">
+                     <div class="packet-header">Packet ${pid}</div>`;
+          frags.forEach(f => {
+            html += `<div class="fragment mf-${f.moreFragments}">
+                       Offset=${f.offset}, Data="${f.data}", MF=${f.moreFragments}
+                     </div>`;
+          });
+          html += `</div>`;
+        }
+        return html || "No fragments yet.";
+      }
+    }
+
+    const pool = new ReassemblyPool();
+
+    function addFragment() {
+      let packetId = parseInt(document.getElementById("packetId").value);
+      let offset = parseInt(document.getElementById("offset").value);
+      let data = document.getElementById("data").value;
+      let mf = parseInt(document.getElementById("mf").value);
+
+      if (!data) return;
+
+      let fragment = new Fragment(packetId, offset, data, mf);
+      pool.addFragment(fragment);
+      document.getElementById("poolDisplay").innerHTML = pool.displayPool();
+    }
+
+    function manualReassemble() {
+      let packetId = parseInt(document.getElementById("reassembleId").value);
+      let result = pool.reassemble(packetId);
+
+      if (result.error) {
+        document.getElementById("outputDisplay").innerHTML =
+          `<div class="output-error">Packet ${result.packetId}: ${result.error}<br>Efficiency: ${result.efficiency}%</div>`;
+      } else {
+        document.getElementById("outputDisplay").innerHTML =
+          `<div class="output-success">Packet ${result.packetId} reassembled: "${result.message}"<br>Efficiency: ${result.efficiency}%</div>`;
+      }
+
+      document.getElementById("poolDisplay").innerHTML = pool.displayPool();
+    }
+  </script>
+
+</body>
+</html>

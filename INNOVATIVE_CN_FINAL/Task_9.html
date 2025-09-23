@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ICMP Packet Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 700px;
+    }
+    input, select, button {
+      width: 90%;
+      padding: 8px;
+      margin: 8px 0;
+    }
+    .network {
+      margin: 40px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .node {
+      width: 100px;
+      height: 100px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 2;
+    }
+    .ip-label {
+      font-size: 12px;
+      margin-top: 5px;
+      font-weight: normal;
+      color: #333;
+    }
+    .line {
+      position: absolute;
+      top: 50%;
+      left: 100px;
+      right: 100px;
+      height: 4px;
+      background: #555;
+      z-index: 1;
+    }
+    .packet {
+      width: 60px;
+      height: 30px;
+      background: blue;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+      position: absolute;
+      top: calc(50% - 15px); /* Align with the line */
+      left: 110px;
+      display: none;
+      z-index: 3;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>ICMP Destination Unreachable Simulation</h2>
+
+    <!-- Only allow 192.168.1.1 -->
+    <input type="text" id="destination" placeholder="Enter destination IP"
+           pattern="192\.168\.1\.1" required title="Only 192.168.1.1 is allowed">
+
+    <select id="errorCode">
+      <option value="success">Send Successfully</option>
+      <option value="0">Network Unreachable</option>
+      <option value="1">Host Unreachable</option>
+      <option value="3">Port Unreachable</option>
+      <option value="4">Fragmentation Needed</option>
+    </select>
+
+    <button onclick="sendPacket()">Send Packet</button>
+
+    <div class="network">
+      <div class="node">Source</div>
+      <div class="line"></div>
+      <div class="node">
+        Destination
+        <div id="destIP" class="ip-label"></div>
+      </div>
+      <div class="packet" id="packet">Packet</div>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    function sendPacket() {
+      var dest = document.getElementById("destination").value.trim();
+      var errorCode = document.getElementById("errorCode").value;
+      var resultDiv = document.getElementById("result");
+      var packet = document.getElementById("packet");
+      var destIP = document.getElementById("destIP");
+
+      // Show destination IP under Destination node
+      destIP.textContent = dest;
+
+      // Reset UI
+      resultDiv.textContent = "";
+      resultDiv.className = "result";
+      packet.style.left = "110px";
+      packet.style.display = "flex";
+      packet.style.background = "blue";
+
+      // IP validation
+      if (dest !== "192.168.1.1") {
+        resultDiv.textContent = "Invalid IP: This simulation only supports 192.168.1.1.";
+        resultDiv.className = "result error";
+        packet.style.display = "none";
+        return;
+      }
+
+      var errorMessages = {
+        0: "Network unreachable – check routing table.",
+        1: "Host unreachable – host may be down.",
+        3: "Port unreachable – no app listening at that port.",
+        4: "Fragmentation needed – adjust MTU."
+      };
+
+      // Positions (based on line length)
+      var start = 110;
+      var end = 540;
+      var stopPos;
+
+      if (errorCode === "success") {
+        stopPos = end;
+      } else if (errorCode === "0") {
+        stopPos = 180;
+      } else if (errorCode === "1") {
+        stopPos = 320;
+      } else if (errorCode === "3") {
+        stopPos = end;
+      } else if (errorCode === "4") {
+        stopPos = 420;
+      }
+
+      var pos = start;
+      var interval = setInterval(frame, 10);
+
+      function frame() {
+        if (pos >= stopPos) {
+          clearInterval(interval);
+          if (errorCode === "success") {
+            resultDiv.textContent = "Packet successfully sent to " + dest;
+            resultDiv.className = "result success";
+            packet.style.background = "green";
+          } else {
+            resultDiv.textContent = "Destination unreachable: " + errorMessages[errorCode];
+            resultDiv.className = "result error";
+            packet.style.background = "red";
+          }
+        } else {
+          pos += 2;
+          packet.style.left = pos + "px";
+        }
+      }
+    }
+  </script>
+</body>
+</html>

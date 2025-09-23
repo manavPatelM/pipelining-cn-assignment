@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manual Routing Table Lookup</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0px 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .container {
+      max-width: 950px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 15px;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #34495e;
+      color: white;
+    }
+
+    tr.highlight {
+      background-color: #d1f0d1 !important;
+    }
+
+    tr:hover {
+      background: #f0f4ff;
+      cursor: pointer;
+    }
+
+    input[type="text"] {
+      width: 70%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #3498db;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+      transform: scale(1.05);
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #eaf7ea;
+      border: 1px solid #b6dfb6;
+      border-radius: 8px;
+      display: none;
+      font-size: 16px;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    .error {
+      background: #fceaea;
+      border: 1px solid #f5a7a7;
+    }
+
+    #steps {
+      margin-top: 15px;
+      padding: 12px;
+      background: #f8f9fb;
+      border: 1px dashed #aaa;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    #history {
+      margin-top: 25px;
+      padding: 15px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    #history h3 {
+      margin-top: 0;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+  <header>Manual Routing Table Lookup</header>
+
+  <div class="container">
+    <h2>Routing Table</h2>
+    <table id="routingTable">
+      <thead>
+        <tr>
+          <th>Destination Network</th>
+          <th>Subnet Mask</th>
+          <th>Next Hop</th>
+          <th>Interface</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>192.168.1.0</td><td>255.255.255.0</td><td>192.168.1.1</td><td>eth0</td></tr>
+        <tr><td>192.168.2.0</td><td>255.255.255.0</td><td>192.168.2.1</td><td>eth1</td></tr>
+        <tr><td>172.16.0.0</td><td>255.240.0.0</td><td>172.16.0.1</td><td>eth2</td></tr>
+        <tr><td>10.0.0.0</td><td>255.0.0.0</td><td>10.0.0.1</td><td>eth3</td></tr>
+        <tr><td>203.0.113.0</td><td>255.255.255.0</td><td>203.0.113.1</td><td>eth4</td></tr>
+        <tr><td>0.0.0.0</td><td>0.0.0.0</td><td>192.168.1.254</td><td>default</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Lookup Destination IP</h2>
+    <input type="text" id="destIp" placeholder="Enter destination IP (e.g. 192.168.2.45)">
+    <button id="lookupBtn">Lookup</button>
+
+    <div id="result" class="result"></div>
+    <div id="steps"></div>
+
+    <div id="history">
+      <h3>Lookup History</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const routingTable = [
+      { network: "192.168.1.0", mask: "255.255.255.0", nextHop: "192.168.1.1", interface: "eth0" },
+      { network: "192.168.2.0", mask: "255.255.255.0", nextHop: "192.168.2.1", interface: "eth1" },
+      { network: "172.16.0.0", mask: "255.240.0.0", nextHop: "172.16.0.1", interface: "eth2" },
+      { network: "10.0.0.0", mask: "255.0.0.0", nextHop: "10.0.0.1", interface: "eth3" },
+      { network: "203.0.113.0", mask: "255.255.255.0", nextHop: "203.0.113.1", interface: "eth4" },
+      { network: "0.0.0.0", mask: "0.0.0.0", nextHop: "192.168.1.254", interface: "default" }
+    ];
+
+    function ipToInt(ip) {
+      return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+    }
+
+    function applyMask(ip, mask) {
+      return ipToInt(ip) & ipToInt(mask);
+    }
+
+    function isValidIp(ip) {
+      const parts = ip.split(".");
+      if (parts.length !== 4) return false;
+      return parts.every(p => /^\d+$/.test(p) && +p >= 0 && +p <= 255);
+    }
+
+    function lookup(destIp) {
+      let steps = [];
+      let destInt = ipToInt(destIp);
+      let bestMatch = null;
+      let longestMask = -1;
+
+      routingTable.forEach(entry => {
+        let net = applyMask(entry.network, entry.mask);
+        let dest = applyMask(destIp, entry.mask);
+
+        if (net === dest) {
+          let maskBits = entry.mask.split(".").map(x => parseInt(x).toString(2).replace(/0/g,"").length).reduce((a,b)=>a+b,0);
+          steps.push(`✔️ Match found with ${entry.network}/${maskBits}`);
+          if (maskBits > longestMask) {
+            longestMask = maskBits;
+            bestMatch = entry;
+          }
+        } else {
+          steps.push(`❌ No match with ${entry.network}/${entry.mask}`);
+        }
+      });
+      return {bestMatch, steps};
+    }
+
+    $(document).ready(function() {
+      $("#lookupBtn").click(function() {
+        let destIp = $("#destIp").val().trim();
+        $("tr").removeClass("highlight");
+
+        if (!isValidIp(destIp)) {
+          $("#result").removeClass().addClass("result error").html("⚠️ Please enter a valid IPv4 address.").show();
+          $("#steps").hide();
+          return;
+        }
+
+        let {bestMatch, steps} = lookup(destIp);
+
+        if (bestMatch) {
+          let msg = (bestMatch.network === "0.0.0.0") 
+            ? `🌍 No specific match found → Using <b>default route</b> via <b>${bestMatch.nextHop}</b> (${bestMatch.interface})`
+            : `✅ Packet will be forwarded to <b>${bestMatch.nextHop}</b> via interface <b>${bestMatch.interface}</b>`;
+          
+          $("#result").removeClass().addClass("result").html(msg).show();
+          $("#steps").html("<b>Lookup Process:</b><br>" + steps.join("<br>")).show();
+
+          // highlight row
+          $("#routingTable tbody tr").each(function() {
+            if ($(this).find("td:first").text() === bestMatch.network) {
+              $(this).addClass("highlight");
+            }
+          });
+
+          // add to history log
+          $("#log").prepend(`<div class="log-entry">🔎 ${destIp} → ${msg}</div>`);
+        } else {
+          $("#result").removeClass().addClass("result error").html("❌ Destination Unreachable").show();
+          $("#steps").html("<b>Lookup Process:</b><br>" + steps.join("<br>")).show();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

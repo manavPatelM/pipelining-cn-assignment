@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation of Network Layer Functions</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --card-bg-color: #ffffff;
+            --text-color: #343a40;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .workflow {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        /* The vertical timeline bar */
+        .workflow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50px;
+            height: 100%;
+            width: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            z-index: 1;
+        }
+
+        .phase {
+            margin-bottom: 40px;
+        }
+
+        .phase-title {
+            padding-left: 100px;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .task-card {
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 20px 25px;
+            position: relative;
+            z-index: 2;
+            margin-left: 100px;
+            /* Align with phase title */
+            box-shadow: 0 4px 12px var(--shadow-color);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .task-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 16px var(--shadow-color);
+        }
+
+        /* The circle on the timeline bar */
+        .task-card::before {
+            content: attr(data-icon);
+            position: absolute;
+            left: -73px;
+            /* Position it over the timeline */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48px;
+            height: 48px;
+            background: var(--card-bg-color);
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .task-card a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .task-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: var(--primary-color);
+        }
+
+        .task-description {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--secondary-color);
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Simulation of Network Layer Functions</h1>
+            <p>A simulation of the Network Layer's core functions, visualizing the step-by-step workflow of packet
+                routing from source to destination.</p>
+        </header>
+
+        <div class="workflow">
+
+            <div class="phase">
+                <h2 class="phase-title">Phase 1: Packet Creation & Setup</h2>
+                <div class="task-card" data-icon="📝">
+                    <a href="Task_1.html">
+                        <h3 class="task-title">1. Assign IP Addresses</h3>
+                        <p class="task-description">Define the logical start and end points for our packet's journey.
+                        </p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="📦">
+                    <a href="Task_10.html">
+                        <h3 class="task-title">10. Attach Headers & Forward to Data Link Layer</h3>
+                        <p class="task-description">Package the data with necessary IP header information and prepare it
+                            for physical transmission.</p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h2 class="phase-title">Phase 2: The Routing Decision</h2>
+                <div class="task-card" data-icon="🗺️">
+                    <a href="Task_2.html">
+                        <h3 class="task-title">2. Manual Routing Table Lookup</h3>
+                        <p class="task-description">Simulate how a router uses a static table to determine the next hop
+                            for a packet.</p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="💡">
+                    <a href="Task_3.html">
+                        <h3 class="task-title">3. Dijkstra's Routing Algorithm</h3>
+                        <p class="task-description">Implement a dynamic algorithm to find the shortest path in a network
+                            topology.</p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="🎯">
+                    <a href="Task_11.html">
+                        <h3 class="task-title">11. Dynamic Route Selection (Optimal Cost)</h3>
+                        <p class="task-description">Build a program to automatically select the best path based on
+                            calculated costs.</p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h2 class="phase-title">Phase 3: Life in Transit</h2>
+                <div class="task-card" data-icon="⏳">
+                    <a href="Task_4.html">
+                        <h3 class="task-title">4. TTL & Packet Expiration</h3>
+                        <p class="task-description">Implement the Time-To-Live field to prevent packets from looping
+                            infinitely.</p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="🧩">
+                    <a href="Task_5_&_6.html">
+                        <h3 class="task-title">5 & 6. Packet Fragmentation & Reassembly</h3>
+                        <p class="task-description">
+                            Break down large packets into smaller fragments (if exceeding MTU)
+                            and rebuild them back into the original packet at the destination.
+                        </p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="📍">
+                    <a href="Task_7.html">
+                        <h3 class="task-title">7. Traceroute Simulation</h3>
+                        <p class="task-description">Visualize the hop-by-hop path a packet takes to reach its
+                            destination.</p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h2 class="phase-title">Phase 4: Special Handling & Edge Cases</h2>
+                <div class="task-card" data-icon="🎭">
+                    <a href="Task_8.html">
+                        <h3 class="task-title">8. Simple NAT Translation</h3>
+                        <p class="task-description">Simulate how Network Address Translation modifies IP headers to map
+                            private to public IPs.</p>
+                    </a>
+                </div>
+                <div class="task-card" data-icon="🚫">
+                    <a href="Task_9.html">
+                        <h3 class="task-title">9. "Destination Unreachable" Error</h3>
+                        <p class="task-description">Create a function to handle and report when a packet cannot be
+                            delivered.</p>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Network Routing Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* --- Corporate Theme Styling --- */
+        :root {
+            --bg-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --primary-color: #0d6efd;
+            --primary-hover: #0b5ed7;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --success-color: #198754;
+            --error-color: #dc3545;
+            --warn-color: #ffc107;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            gap: 25px;
+            background-color: var(--surface-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 1600px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- Controls & Input Section --- */
+        .controls {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        h1,
+        h2 {
+            margin: 0 0 10px 0;
+            color: #343a40;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 1.6em;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.0em;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .project-description {
+            padding: 15px;
+            background-color: #f0f6ff;
+            border-radius: 8px;
+            border: 1px solid #cce0ff;
+            margin-bottom: 10px;
+        }
+
+        .project-description h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.0em;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .project-description p {
+            margin: 0;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        select,
+        input[type="number"],
+        button {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #fff;
+            color: var(--text-color);
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        select:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #a9c7f5;
+            cursor: not-allowed;
+            transform: translateY(0);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        #speed-value {
+            text-align: right;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        /* --- Simulation Area --- */
+        .simulation-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #network-visualization {
+            position: relative;
+            height: 450px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            background-color: #fcfdff;
+        }
+
+        .node {
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            background-color: #fff;
+            color: var(--primary-color);
+            border: 2px solid #a9c7f5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            /* Bolder text */
+            font-size: 1.1em;
+            /* Slightly larger numbers */
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .node.active {
+            background-color: var(--warn-color);
+            border-color: #ffda6b;
+            color: #333;
+            transform: scale(1.2);
+        }
+
+        .node.path {
+            border-color: var(--primary-color);
+            background-color: #e7f1ff;
+        }
+
+        .node.start {
+            background-color: var(--success-color);
+            border-color: #6ee3ab;
+            color: #fff;
+        }
+
+        .node.end {
+            background-color: var(--error-color);
+            border-color: #f09ba3;
+            color: #fff;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .link {
+            stroke: #ced4da;
+            stroke-width: 2;
+        }
+
+        .link-label {
+            font-size: 16px;
+            /* bigger text */
+            fill: #000000;
+            /* solid black */
+            font-weight: bold;
+            /* thicker for readability */
+            text-anchor: middle;
+            dominant-baseline: middle;
+            paint-order: stroke;
+            /* add outline for visibility */
+            stroke: #ffffff;
+            /* white outline */
+            stroke-width: 3px;
+            /* thickness of outline */
+        }
+
+
+        .link.path {
+            stroke: var(--primary-color);
+            stroke-width: 4;
+        }
+
+        #packet {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle, #fff, var(--primary-color));
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--primary-color);
+            z-index: 10;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .packet-dropped {
+            animation: packet-drop 0.5s forwards;
+        }
+
+        @keyframes packet-drop {
+            0% {
+                transform: scale(1.5);
+                background: var(--error-color);
+                box-shadow: 0 0 15px var(--error-color);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* --- Log Output Section --- */
+        #log-output {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            flex-grow: 1;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+        }
+
+        .log-success {
+            color: var(--success-color);
+        }
+
+        .log-error {
+            color: var(--error-color);
+        }
+
+        .log-info {
+            color: #5599ff;
+        }
+
+        .log-warn {
+            color: var(--warn-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="controls">
+            <h1>Task 4</h1>
+
+            <div class="project-description">
+                <h3>Network Packet Routing & Time-Based TTL</h3>
+                <p>
+                    This simulation uses <strong>Dijkstra's algorithm</strong> to find the lowest-cost path in a 40-node
+                    network. The packet's <strong>Time-To-Live (TTL)</strong> is a time budget in seconds (s). At each
+                    hop, the link's cost is subtracted from the TTL. The packet is dropped if the TTL is insufficient
+                    for the next hop<strong>(i.e. packet expiration)</strong>.
+                </p>
+            </div>
+            <h2>Configuration</h2>
+
+            <div class="input-group">
+                <label for="source-node">Source Node</label>
+                <select id="source-node"></select>
+            </div>
+
+            <div class="input-group">
+                <label for="destination-node">Destination Node</label>
+                <select id="destination-node"></select>
+            </div>
+
+            <div class="input-group">
+                <label for="ttl-input">Initial TTL (Time-To-Live)</label>
+                <input type="number" id="ttl-input" value="10" min="1" max="100">
+            </div>
+
+            <div class="input-group slider-group">
+                <label for="speed-slider">Simulation Speed</label>
+                <input type="range" id="speed-slider" min="100" max="2000" value="1000" step="50">
+                <div id="speed-value">1000 ms / hop</div>
+            </div>
+
+            <button id="send-packet-btn">Run Simulation</button>
+        </div>
+
+        <div class="simulation-area">
+            <div id="network-visualization">
+                <div id="packet"></div>
+                <svg id="link-svg"></svg>
+            </div>
+            <h2>Event Log</h2>
+            <div id="log-output">
+                <div>Welcome! Configure the simulation to begin.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. FINAL CORRECTED 40-NODE TOPOLOGY ---
+            const networkGraph = {
+                // Row 1
+                '1': { '2': 5, '11': 6, '12': 4 },
+                '2': { '1': 5, '3': 4, '12': 3, '13': 3 },
+                '3': { '2': 4, '4': 7, '13': 2 },
+                '4': { '3': 7, '5': 3, '14': 8, '15': 5 },
+                '5': { '4': 3, '6': 4, '15': 5 },
+                '6': { '5': 4, '7': 6, '16': 3, '15': 5 },
+                '7': { '6': 6, '8': 5, '17': 7, '16': 4, '18': 5 },
+                '8': { '7': 5, '9': 4, '18': 4 },
+                '9': { '8': 4, '10': 3, '19': 6, '20': 3 },
+                '10': { '9': 3, '20': 5 },
+                // Row 2
+                '11': { '1': 6, '12': 5, '21': 8 },
+                '12': { '2': 3, '11': 5, '13': 6, '22': 4, '1': 4 },
+                '13': { '3': 2, '12': 6, '14': 3, '23': 5, '2': 3 },
+                '14': { '4': 8, '13': 3, '15': 5, '24': 7, '25': 5 },
+                '15': { '5': 5, '14': 5, '16': 6, '25': 4, '6': 5, '4': 5 },
+                '16': { '6': 3, '15': 6, '17': 2, '26': 8, '7': 4 },
+                '17': { '7': 7, '16': 2, '18': 5, '27': 6 },
+                '18': { '8': 4, '17': 5, '19': 4, '28': 7, '7': 5, '27': 3 },
+                '19': { '9': 6, '18': 4, '20': 3, '29': 5 },
+                '20': { '10': 5, '19': 3, '30': 4, '9': 3 },
+                // Row 3
+                '21': { '11': 8, '22': 4, '31': 7 },
+                '22': { '12': 4, '21': 4, '23': 3, '32': 5, '33': 4 },
+                '23': { '13': 5, '22': 3, '24': 4, '33': 6, '34': 5 },
+                '24': { '14': 7, '23': 4, '25': 2, '34': 8 },
+                '25': { '15': 4, '24': 2, '26': 5, '35': 5, '14': 5 },
+                '26': { '16': 8, '25': 5, '27': 3, '36': 4 },
+                '27': { '17': 6, '26': 3, '28': 5, '37': 7, '18': 3 },
+                '28': { '18': 7, '27': 5, '29': 4, '38': 4, '39': 3 },
+                '29': { '19': 5, '28': 4, '30': 3, '39': 6 },
+                '30': { '20': 4, '29': 3, '40': 5 },
+                // Row 4
+                '31': { '21': 7, '32': 4 },
+                '32': { '22': 5, '31': 4, '33': 3 },
+                '33': { '23': 6, '32': 3, '34': 5, '22': 4 },
+                '34': { '24': 8, '33': 5, '35': 4, '23': 5 },
+                '35': { '25': 5, '34': 4, '36': 5 },
+                '36': { '26': 4, '35': 5, '37': 4 },
+                '37': { '27': 7, '36': 4, '38': 3 },
+                '38': { '28': 4, '37': 3, '39': 5 },
+                '39': { '29': 6, '38': 5, '40': 4, '28': 3 },
+                '40': { '30': 5, '39': 4 }
+            };
+
+            const nodePositions = {
+                // Row 1
+                '1': { x: 50, y: 50 }, '2': { x: 150, y: 50 }, '3': { x: 250, y: 50 }, '4': { x: 350, y: 50 }, '5': { x: 450, y: 50 },
+                '6': { x: 550, y: 50 }, '7': { x: 650, y: 50 }, '8': { x: 750, y: 50 }, '9': { x: 850, y: 50 }, '10': { x: 950, y: 50 },
+                // Row 2
+                '11': { x: 50, y: 150 }, '12': { x: 150, y: 150 }, '13': { x: 250, y: 150 }, '14': { x: 350, y: 150 }, '15': { x: 450, y: 150 },
+                '16': { x: 550, y: 150 }, '17': { x: 650, y: 150 }, '18': { x: 750, y: 150 }, '19': { x: 850, y: 150 }, '20': { x: 950, y: 150 },
+                // Row 3
+                '21': { x: 50, y: 250 }, '22': { x: 150, y: 250 }, '23': { x: 250, y: 250 }, '24': { x: 350, y: 250 }, '25': { x: 450, y: 250 },
+                '26': { x: 550, y: 250 }, '27': { x: 650, y: 250 }, '28': { x: 750, y: 250 }, '29': { x: 850, y: 250 }, '30': { x: 950, y: 250 },
+                // Row 4
+                '31': { x: 50, y: 350 }, '32': { x: 150, y: 350 }, '33': { x: 250, y: 350 }, '34': { x: 350, y: 350 }, '35': { x: 450, y: 350 },
+                '36': { x: 550, y: 350 }, '37': { x: 650, y: 350 }, '38': { x: 750, y: 350 }, '39': { x: 850, y: 350 }, '40': { x: 950, y: 350 }
+            };
+
+            // --- 2. GET DOM ELEMENTS ---
+            const sourceSelect = document.getElementById('source-node');
+            const destSelect = document.getElementById('destination-node');
+            const ttlInput = document.getElementById('ttl-input');
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            const sendBtn = document.getElementById('send-packet-btn');
+            const logOutput = document.getElementById('log-output');
+            const networkViz = document.getElementById('network-visualization');
+            const linkSvg = document.getElementById('link-svg');
+            const packetEl = document.getElementById('packet');
+
+            // --- 3. INITIALIZATION ---
+            function initialize() {
+                const nodes = Object.keys(networkGraph).sort((a, b) => parseInt(a) - parseInt(b)); // Sort numerically
+                nodes.forEach(node => {
+                    sourceSelect.innerHTML += `<option value="${node}">Node ${node}</option>`;
+                    destSelect.innerHTML += `<option value="${node}">Node ${node}</option>`;
+                });
+                destSelect.value = nodes[nodes.length - 1];
+                drawNetwork();
+                updateSpeedLabel();
+            }
+
+            // --- 4. DRAWING & VISUALIZATION ---
+            function drawNetwork() {
+                networkViz.querySelectorAll('.node').forEach(n => n.remove());
+                linkSvg.innerHTML = '';
+                const drawnLinks = new Set();
+                const nodeSize = 45;
+
+                for (const node in nodePositions) {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'node';
+                    nodeEl.id = `node-${node}`;
+                    nodeEl.textContent = node;
+                    nodeEl.style.left = `${nodePositions[node].x}px`;
+                    nodeEl.style.top = `${nodePositions[node].y}px`;
+                    networkViz.appendChild(nodeEl);
+
+                    for (const neighbor in networkGraph[node]) {
+                        if (!nodePositions[neighbor]) continue;
+
+                        const linkId1 = `${node}-${neighbor}`, linkId2 = `${neighbor}-${node}`;
+                        if (!drawnLinks.has(linkId1) && !drawnLinks.has(linkId2)) {
+                            const p1 = nodePositions[node], p2 = nodePositions[neighbor];
+                            const cost = networkGraph[node][neighbor];
+                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                            line.setAttribute('x1', p1.x + nodeSize / 2); line.setAttribute('y1', p1.y + nodeSize / 2);
+                            line.setAttribute('x2', p2.x + nodeSize / 2); line.setAttribute('y2', p2.y + nodeSize / 2);
+                            line.setAttribute('class', 'link'); line.id = `link-${linkId1}`;
+                            linkSvg.appendChild(line);
+                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            text.setAttribute('x', (p1.x + p2.x) / 2 + 10);
+                            text.setAttribute('y', (p1.y + p2.y) / 2 + 10);
+                            text.setAttribute('class', 'link-label');
+                            text.textContent = cost;
+                            linkSvg.appendChild(text);
+                            drawnLinks.add(linkId1);
+                        }
+                    }
+                }
+            }
+
+            // --- 5. LOGGING UTILITY ---
+            const log = (message, type = 'info') => {
+                const entry = document.createElement('div');
+                entry.innerHTML = `&gt; ${message}`;
+                entry.className = `log-entry log-${type}`;
+                logOutput.appendChild(entry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+            };
+            const clearLog = () => logOutput.innerHTML = '';
+
+            // --- 6. CORE LOGIC: DIJKSTRA'S ALGORITHM ---
+            function dijkstra(graph, startNode) {
+                const costs = {}, parents = {}, processed = [];
+                Object.keys(graph).forEach(node => {
+                    costs[node] = node === startNode ? 0 : Infinity;
+                    parents[node] = null;
+                });
+                let node = findLowestCostNode(costs, processed);
+                while (node) {
+                    let cost = costs[node], neighbors = graph[node];
+                    for (let n in neighbors) {
+                        let newCost = cost + neighbors[n];
+                        if (costs[n] > newCost) {
+                            costs[n] = newCost;
+                            parents[n] = node;
+                        }
+                    }
+                    processed.push(node);
+                    node = findLowestCostNode(costs, processed);
+                }
+                return parents;
+            }
+
+            function findLowestCostNode(costs, processed) {
+                return Object.keys(costs).reduce((lowest, node) => {
+                    if (lowest === null || costs[node] < costs[lowest]) {
+                        if (!processed.includes(node)) lowest = node;
+                    }
+                    return lowest;
+                }, null);
+            }
+
+            function reconstructPath(parents, startNode, endNode) {
+                const path = [endNode];
+                let parent = parents[endNode];
+                while (parent) {
+                    path.unshift(parent);
+                    parent = parents[parent];
+                }
+                return path[0] === startNode ? path : null;
+            }
+
+            // --- 7. SIMULATION LOGIC ---
+            const resetVisualization = () => {
+                document.querySelectorAll('.node').forEach(n => n.classList.remove('active', 'path', 'start', 'end'));
+                document.querySelectorAll('.link').forEach(l => l.classList.remove('path'));
+                packetEl.style.display = 'none';
+                packetEl.classList.remove('packet-dropped');
+            };
+
+            async function startSimulation() {
+                sendBtn.disabled = true;
+                resetVisualization();
+                clearLog();
+                const source = sourceSelect.value, destination = destSelect.value;
+                let ttl = parseInt(ttlInput.value, 10);
+                if (source === destination) {
+                    log("Source and Destination cannot be the same.", "error");
+                    sendBtn.disabled = false; return;
+                }
+                if (isNaN(ttl) || ttl < 1) {
+                    log("Invalid TTL. Must be >= 1.", "error");
+                    sendBtn.disabled = false; return;
+                }
+                log(`Routing from ${source} to ${destination} with TTL=${ttl}`, 'info');
+                const parents = dijkstra(networkGraph, source);
+                const path = reconstructPath(parents, source, destination);
+                if (!path) {
+                    log(`Destination ${destination} is unreachable.`, "error");
+                    sendBtn.disabled = false; return;
+                }
+                log(`Optimal path: ${path.join(' → ')}`, 'info');
+                highlightPath(path);
+
+                // Animate packet traversal
+                for (let i = 0; i < path.length; i++) {
+                    const currentNode = path[i], nextNode = path[i + 1];
+                    const speed = 2100 - speedSlider.value;
+                    const nodeSize = 45, packetSize = 24;
+                    const offset = (nodeSize - packetSize) / 2;
+
+                    document.querySelectorAll('.node.active').forEach(n => n.classList.remove('active'));
+                    document.getElementById(`node-${currentNode}`).classList.add('active');
+
+                    packetEl.textContent = ttl;
+
+                    if (i === 0) {
+                        log(`Packet sent from <strong>${currentNode}</strong>. TTL = ${ttl}`);
+                        const startPos = nodePositions[currentNode];
+                        packetEl.style.left = `${startPos.x + offset}px`;
+                        packetEl.style.top = `${startPos.y + offset}px`;
+                        packetEl.style.display = 'flex';
+                    } else {
+                        ttl--;
+                        log(`Arrived at <strong>${currentNode}</strong>. TTL decremented to ${ttl}`, 'warn');
+                        packetEl.textContent = ttl;
+                    }
+
+                    if (ttl < 0) {
+                        log(`⛔ TTL expired! Packet dropped at <strong>${currentNode}</strong>.`, "error");
+                        packetEl.classList.add('packet-dropped');
+                        setTimeout(() => sendBtn.disabled = false, 500);
+                        return;
+                    }
+                    if (currentNode === destination) {
+                        log(`✅ Packet delivered to <strong>${destination}</strong>!`, "success");
+                        sendBtn.disabled = false; return;
+                    }
+
+                    if (nextNode) {
+                        const startPos = nodePositions[currentNode];
+                        const endPos = nodePositions[nextNode];
+                        const animation = packetEl.animate([
+                            { left: `${startPos.x + offset}px`, top: `${startPos.y + offset}px` },
+                            { left: `${endPos.x + offset}px`, top: `${endPos.y + offset}px` }
+                        ], { duration: speed, easing: 'ease-in-out' });
+                        await animation.finished;
+                    }
+                }
+            }
+
+            function highlightPath(path) {
+                for (let i = 0; i < path.length; i++) {
+                    const node = path[i];
+                    const nodeEl = document.getElementById(`node-${node}`);
+                    nodeEl.classList.add('path');
+                    if (i === 0) nodeEl.classList.add('start');
+                    if (i === path.length - 1) nodeEl.classList.add('end');
+                    if (i < path.length - 1) {
+                        const nextNode = path[i + 1];
+                        let linkEl = document.getElementById(`link-${node}-${nextNode}`) || document.getElementById(`link-${nextNode}-${node}`);
+                        if (linkEl) linkEl.classList.add('path');
+                    }
+                }
+            }
+
+            // --- 8. EVENT LISTENERS ---
+            function updateSpeedLabel() {
+                speedValue.textContent = `${speedSlider.value} ms / hop`;
+            }
+            sendBtn.addEventListener('click', startSimulation);
+            speedSlider.addEventListener('input', updateSpeedLabel);
+
+            // --- RUN INITIALIZATION ---
+            initialize();
+        });
+    </script>
+</body>
+
+</html>

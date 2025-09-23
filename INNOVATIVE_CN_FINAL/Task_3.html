@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dijkstra's Algorithm Simulator (16 Nodes)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        h1 {
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 28px;
+            letter-spacing: 1px;
+        }
+
+        #container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        #graphCanvas {
+            border: 2px solid #3498db;
+            background: #fdfdfd;
+            margin-top: 20px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.25s;
+            font-size: 14px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #2980b9, #3498db);
+            transform: scale(1.07);
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #bdc3c7;
+            font-size: 14px;
+            background: #ffffff;
+            color: #2c3e50;
+        }
+
+        #log {
+            margin-top: 20px;
+            padding: 14px;
+            background: #f8f9fa;
+            border: 1px solid #3498db;
+            width: 750px;
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 14px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: left;
+            color: #2c3e50;
+        }
+
+        #log b {
+            color: #e74c3c;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+
+<body>
+    <h1> Dijkstra's Algorithm Simulator </h1>
+
+    <div id="container">
+        <canvas id="graphCanvas" width="850" height="600"></canvas>
+
+        <div class="controls">
+            <label for="source">Source:</label>
+            <select id="source"></select>
+            <label for="target">Target:</label>
+            <select id="target"></select>
+            <button onclick="runDijkstra()">Find Shortest Path</button>
+        </div>
+
+        <div id="log"></div>
+    </div>
+
+    <footer>📘 Computer Networks Assignment – Dijkstra’s Algorithm Visualization</footer>
+
+    <script>
+        const canvas = document.getElementById("graphCanvas");
+        const ctx = canvas.getContext("2d");
+        const logDiv = document.getElementById("log");
+        const sourceSelect = document.getElementById("source");
+        const targetSelect = document.getElementById("target");
+
+        // 16 nodes
+        const nodes = [
+            { id: 0, x: 100, y: 80 }, { id: 1, x: 250, y: 80 }, { id: 2, x: 400, y: 80 },
+            { id: 3, x: 550, y: 80 }, { id: 4, x: 700, y: 80 }, { id: 5, x: 150, y: 200 },
+            { id: 6, x: 300, y: 200 }, { id: 7, x: 450, y: 200 }, { id: 8, x: 600, y: 200 },
+            { id: 9, x: 750, y: 200 }, { id: 10, x: 200, y: 350 }, { id: 11, x: 350, y: 350 },
+            { id: 12, x: 500, y: 350 }, { id: 13, x: 650, y: 350 }, { id: 14, x: 300, y: 500 },
+            { id: 15, x: 550, y: 500 }
+        ];
+
+        // Edges (undirected)
+        const edges = [
+            { start: 0, end: 1, weight: 2 }, { start: 1, end: 2, weight: 4 },
+            { start: 2, end: 3, weight: 7 }, { start: 3, end: 4, weight: 3 },
+            { start: 0, end: 5, weight: 6 }, { start: 1, end: 6, weight: 5 },
+            { start: 2, end: 7, weight: 8 }, { start: 3, end: 8, weight: 4 },
+            { start: 4, end: 9, weight: 6 }, { start: 5, end: 6, weight: 2 },
+            { start: 6, end: 7, weight: 3 }, { start: 7, end: 8, weight: 5 },
+            { start: 8, end: 9, weight: 2 }, { start: 5, end: 10, weight: 7 },
+            { start: 6, end: 11, weight: 6 }, { start: 7, end: 12, weight: 4 },
+            { start: 8, end: 13, weight: 3 }, { start: 10, end: 11, weight: 2 },
+            { start: 11, end: 12, weight: 5 }, { start: 12, end: 13, weight: 6 },
+            { start: 10, end: 14, weight: 4 }, { start: 11, end: 14, weight: 7 },
+            { start: 12, end: 15, weight: 3 }, { start: 13, end: 15, weight: 5 },
+            { start: 14, end: 15, weight: 6 }
+        ];
+
+        // Ensure weights are numbers
+        edges.forEach(e => e.weight = Number(e.weight));
+
+        function drawGraph(highlightedEdges = []) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw edges
+            edges.forEach(edge => {
+                const n1 = nodes.find(n => n.id === edge.start);
+                const n2 = nodes.find(n => n.id === edge.end);
+
+                ctx.beginPath();
+                ctx.moveTo(n1.x, n1.y);
+                ctx.lineTo(n2.x, n2.y);
+
+                let isHighlighted = highlightedEdges.some(
+                    e => (e[0] === edge.start && e[1] === edge.end) ||
+                        (e[1] === edge.start && e[0] === edge.end)
+                );
+
+                ctx.strokeStyle = isHighlighted ? "#e74c3c" : "#7f8c8d";
+                ctx.lineWidth = isHighlighted ? 3.5 : 1.5;
+                ctx.stroke();
+
+                // Edge weight
+                ctx.fillStyle = "#000000";   // Black color
+                ctx.font = "bold 18px Arial";
+                ctx.fillText(edge.weight, (n1.x + n2.x) / 2, (n1.y + n2.y) / 2);
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 18, 0, Math.PI * 2);
+                ctx.fillStyle = "#3498db";
+                ctx.fill();
+                ctx.strokeStyle = "#ecf0f1";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = "white";
+                ctx.font = "bold 13px Arial";
+                ctx.fillText(node.id, node.x - 6, node.y + 5);
+            });
+        }
+
+        function buildAdjList() {
+            const adj = {};
+            nodes.forEach(n => adj[n.id] = []);
+            edges.forEach(e => {
+                adj[e.start].push({ node: e.end, weight: e.weight });
+                adj[e.end].push({ node: e.start, weight: e.weight });
+            });
+            return adj;
+        }
+
+        function logMessage(msg) {
+            logDiv.innerHTML += msg + "<br>";
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function runDijkstra() {
+            logDiv.innerHTML = "";
+
+            const src = parseInt(sourceSelect.value);
+            const target = parseInt(targetSelect.value);
+
+            const adj = buildAdjList();
+            const dist = {};
+            const parent = {};
+            const visited = {};
+
+            nodes.forEach(n => {
+                dist[n.id] = Infinity;
+                visited[n.id] = false;
+                parent[n.id] = -1;
+            });
+            dist[src] = 0;
+
+            for (let i = 0; i < nodes.length - 1; i++) {
+                let u = -1;
+                for (let n of nodes) {
+                    if (!visited[n.id] && (u === -1 || dist[n.id] < dist[u])) {
+                        u = n.id;
+                    }
+                }
+                if (u === -1) break;
+                visited[u] = true;
+                logMessage(`Visiting node ${u}, distance ${dist[u]}`);
+
+                adj[u].forEach(v => {
+                    if (!visited[v.node] && dist[u] + v.weight < dist[v.node]) {
+                        dist[v.node] = dist[u] + v.weight;
+                        parent[v.node] = u;
+                        logMessage(`Updated distance of ${v.node} to ${dist[v.node]} via ${u}`);
+                    }
+                });
+            }
+
+            if (dist[target] === Infinity) {
+                logMessage("<b>No path found!</b>");
+                drawGraph();
+                return;
+            }
+
+            // Path reconstruction
+            let path = [];
+            let cur = target;
+            while (cur !== -1) {
+                path.push(cur);
+                cur = parent[cur];
+            }
+            path.reverse();
+
+            // Highlight path edges
+            let pathEdges = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                pathEdges.push([path[i], path[i + 1]]);
+            }
+            drawGraph(pathEdges);
+
+            logMessage(`<b>Shortest Path:</b> ${path.join(" → ")} (Cost: ${dist[target]})`);
+        }
+
+        function initControls() {
+            nodes.forEach(node => {
+                let opt1 = document.createElement("option");
+                opt1.value = node.id;
+                opt1.innerText = "Node " + node.id;
+                sourceSelect.appendChild(opt1);
+
+                let opt2 = document.createElement("option");
+                opt2.value = node.id;
+                opt2.innerText = "Node " + node.id;
+                targetSelect.appendChild(opt2);
+            });
+        }
+
+        initControls();
+        drawGraph();
+    </script>
+</body>
+
+</html>

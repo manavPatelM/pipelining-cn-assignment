@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Traceroute Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      padding: 20px;
+      background: #222;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      flex-wrap: wrap;
+    }
+    .controls div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .controls input, .controls button {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+    }
+    .controls input {
+      text-align: center;
+      width: 120px;
+    }
+    .controls button {
+      background: #0078ff;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .controls button:hover {
+      background: #005fcc;
+    }
+    svg {
+      width: 100%;
+      height: 200px;
+      margin-top: 20px;
+      background: #181818;
+    }
+    table {
+      width: 95%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    table, th, td {
+      border: 1px solid #444;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    td.clickable {
+      cursor: pointer;
+      color: #4da6ff;
+      text-decoration: underline;
+    }
+    .rtt-bar {
+      height: 8px;
+      border-radius: 4px;
+    }
+    .stats {
+      margin: 20px auto;
+      padding: 15px;
+      width: 90%;
+      background: #1e1e1e;
+      border-radius: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+    .mode-toggle {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    body.light {
+      background: #f9f9f9;
+      color: #222;
+    }
+    body.light header {
+      background: #ddd;
+      color: #111;
+    }
+    body.light .controls {
+      background: #eee;
+    }
+    body.light svg {
+      background: #fff;
+    }
+    body.light .stats {
+      background: #f0f0f0;
+    }
+    /* Popup modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      color: white;
+      position: relative;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+    }
+    .close {
+      position: absolute;
+      top: 10px; right: 15px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    canvas {
+      background: #111;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>Traceroute Simulation (Hop Count Visualization)</header>
+  <button class="mode-toggle" onclick="toggleMode()">🌙 Dark/Light</button>
+
+  <div class="controls">
+    <div>
+      <input type="text" id="destination" placeholder="8.8.8.8" />
+      <div>Destination IP</div>
+    </div>
+    <div>
+      <input type="number" id="maxHops" value="10" min="1" max="30" />
+      <div>Max Hops</div>
+    </div>
+    <div>
+      <input type="number" id="loss" value="10" min="0" max="100" />
+      <div>Packet Loss %</div>
+    </div>
+    <div>
+      <input type="number" id="baseRTT" value="50" min="1" />
+      <div>Base RTT (ms)</div>
+    </div>
+    <div>
+      <button onclick="runTraceroute()">Run</button>
+    </div>
+    <div>
+      <button onclick="resetTraceroute()">Reset</button>
+    </div>
+  </div>
+
+  <svg id="network"></svg>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Hop</th>
+        <th>IP Address</th>
+        <th>Hostname</th>
+        <th>RTT Probe 1</th>
+        <th>RTT Probe 2</th>
+        <th>RTT Probe 3</th>
+        <th>Graph</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <div class="stats" id="stats"></div>
+
+  <!-- Modal for RTT graph -->
+  <div class="modal" id="rttModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h3 id="modalTitle">RTT Graph</h3>
+      <canvas id="rttCanvas" width="350" height="200"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let packet;
+    let mode = "dark";
+    let hopData = {};
+
+    function toggleMode() {
+      mode = (mode === "dark") ? "light" : "dark";
+      document.body.classList.toggle("light");
+    }
+
+    function generateRandomIP() {
+      return `${Math.floor(Math.random()*223)+1}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+    }
+
+    function generateHostname(ip) {
+      return "router-" + ip.split(".").join("-");
+    }
+
+    function getColor(rtt) {
+      if (rtt < 100) return "limegreen";
+      if (rtt < 200) return "orange";
+      return "red";
+    }
+
+    async function runTraceroute() {
+      resetTraceroute();
+      const destination = document.getElementById("destination").value || "8.8.8.8";
+      const maxHops = parseInt(document.getElementById("maxHops").value);
+      const loss = parseInt(document.getElementById("loss").value);
+      const baseRTT = parseInt(document.getElementById("baseRTT").value);
+      const svg = document.getElementById("network");
+      const results = document.getElementById("results");
+      let totalRTT = 0, successful = 0, totalSent = 0;
+
+      hopData = {};
+
+      // Draw hops
+      for (let i=1; i<=maxHops; i++) {
+        let x = 50 + i*60;
+        svg.innerHTML += `<circle cx="${x}" cy="100" r="18" fill="#0078ff" stroke="#fff" stroke-width="2" id="hop${i}"></circle>`;
+        if (i>1) {
+          svg.innerHTML += `<line x1="${x-60}" y1="100" x2="${x-18}" y2="100" stroke="#aaa" stroke-width="2" marker-end="url(#arrow)"></line>`;
+        }
+      }
+      svg.innerHTML += `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#aaa" /></marker></defs>`;
+      
+      // Red packet
+      packet = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      packet.setAttribute("cx","50");
+      packet.setAttribute("cy","100");
+      packet.setAttribute("r","6");
+      packet.setAttribute("fill","red");
+      svg.appendChild(packet);
+
+      for (let hop=1; hop<=maxHops; hop++) {
+        let ip = generateRandomIP();
+        let host = generateHostname(ip);
+
+        // Move packet
+        let targetX = 50 + hop*60;
+        for (let x=parseInt(packet.getAttribute("cx")); x<=targetX; x+=2) {
+          packet.setAttribute("cx",x);
+          await new Promise(r=>setTimeout(r,10));
+        }
+
+        let row = document.createElement("tr");
+        row.innerHTML = `<td>${hop}</td><td>${ip}</td><td>${host}</td>`;
+
+        let rtts = [];
+        let lostCount = 0;
+        for (let probe=1; probe<=3; probe++) {
+          totalSent++;
+          if (Math.random()*100 < loss) {
+            rtts.push("-");
+            lostCount++;
+          } else {
+            let rtt = baseRTT + Math.floor(Math.random()*150);
+            totalRTT += rtt;
+            successful++;
+            rtts.push(rtt);
+          }
+        }
+
+        hopData[hop] = rtts;
+
+        let avgRTT = rtts.filter(v=>v!="-").reduce((a,b)=>a+b,0) / (3-lostCount || 1);
+        let color = (avgRTT) ? getColor(avgRTT) : "gray";
+        let graph = (avgRTT) ? `<div class="rtt-bar" style="width:${avgRTT/2}px; background:${color};"></div>` : "";
+
+        let status = (lostCount===3) ? "Lost" : "OK";
+
+        row.innerHTML += rtts.map((rtt,i)=>`<td class="clickable" onclick="showRTTGraph(${hop})">${rtt}</td>`).join("");
+        row.innerHTML += `<td>${graph}</td><td>${status}</td>`;
+        results.appendChild(row);
+      }
+
+      let avg = (successful>0) ? (totalRTT/successful).toFixed(2) : "N/A";
+      let efficiency = (totalSent>0) ? ((successful/totalSent)*100).toFixed(2) : "0";
+
+      document.getElementById("stats").innerHTML = `
+        <strong>Summary:</strong><br>
+        Destination: ${destination} <br>
+        Hops Reached: ${maxHops} <br>
+        Packets Sent: ${totalSent} <br>
+        Packets Successfully Reached: ${successful} <br>
+        Average RTT: ${avg} ms <br>
+        Efficiency: ${efficiency}% <br>
+        Packet Loss Config: ${loss}% 
+      `;
+    }
+
+    function resetTraceroute() {
+      document.getElementById("results").innerHTML = "";
+      document.getElementById("stats").innerHTML = "";
+      document.getElementById("network").innerHTML = "";
+      hopData = {};
+    }
+
+    function showRTTGraph(hop) {
+      let modal = document.getElementById("rttModal");
+      let canvas = document.getElementById("rttCanvas");
+      let ctx = canvas.getContext("2d");
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      let rtts = hopData[hop] || [];
+      document.getElementById("modalTitle").innerText = `RTT Graph - Hop ${hop}`;
+
+      let barWidth = 80;
+      let gap = 30;
+      let startX = 40;
+      ctx.fillStyle = "white";
+      ctx.font = "14px Arial";
+      rtts.forEach((rtt,i)=>{
+        let height = (rtt === "-") ? 0 : rtt;
+        ctx.fillStyle = (rtt === "-") ? "gray" : getColor(rtt);
+        ctx.fillRect(startX + i*(barWidth+gap), canvas.height-height-30, barWidth, height);
+        ctx.fillStyle = "white";
+        ctx.fillText(rtt, startX + i*(barWidth+gap)+20, canvas.height-10);
+      });
+
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("rttModal").style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      let modal = document.getElementById("rttModal");
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>

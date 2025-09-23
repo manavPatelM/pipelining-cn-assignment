@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic IP Assignment</title>
+  <style>
+    /* Background with gradient */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #aeaeae, #000000);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    /* Glassmorphism container */
+    .container {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      width: 450px;
+      color: #fff;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 26px;
+      margin-bottom: 15px;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+
+    p {
+      font-size: 15px;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+
+    textarea {
+      width: 100%;
+      height: 110px;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      background: rgba(255,255,255,0.8);
+      color: #333;
+      resize: none;
+      transition: 0.3s ease;
+    }
+
+    textarea:focus {
+      background: #fff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+    }
+
+    /* Fancy button */
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #6fdffb, #393737);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #fdfeff, #000000);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Output box with glowing effect */
+    .output {
+      margin-top: 20px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      font-family: 'Courier New', monospace;
+      white-space: pre-line;
+      text-align: left;
+      color: #f1f1f1;
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>⚡ Assign IP Addresses ⚡</h2>
+    <p>Enter device names (one per line):</p>
+    <textarea id="names" placeholder="e.g. Sender&#10;Receiver&#10;Router&#10;PC1"></textarea>
+    <button onclick="assignIPs()">Generate IPs</button>
+    <div class="output" id="output"></div>
+  </div>
+
+  <script>
+    function assignIPs() {
+      let namesInput = document.getElementById("names").value.trim();
+      let names = namesInput.split("\n").filter(n => n.trim() !== "");
+
+      if (names.length === 0) {
+        document.getElementById("output").innerHTML = "⚠️ Please enter at least one device name.";
+        return;
+      }
+
+      let baseIP = "192.168.1.";
+      let start = 10;
+
+      let results = "✅ <strong>Assigned IP Addresses:</strong>\n\n";
+      names.forEach((name, index) => {
+        let ip = baseIP + (start + index);
+        results += `💻 ${name} → ${ip}\n`;
+      });
+
+      document.getElementById("output").innerHTML = results;
+    }
+  </script>
+</body>
+</html>

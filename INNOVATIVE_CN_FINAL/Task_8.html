@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple NAT Translation Simulator</title>
+  <style>
+    :root{--bg:#ffffff;--card:#f9f9f9;--muted:#555;--accent:#7c3aed;--success:#16a34a;--danger:#ef4444}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;min-height:100vh;background:var(--bg);color:#111}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    header h1{font-size:20px;margin:0}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.1)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select,button{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#111}
+    .row{display:flex;gap:10px}
+    .row > *{flex:1}
+    button{cursor:pointer;border:none;background:var(--accent);padding:10px 12px;font-weight:600;color:#fff}
+    button.ghost{background:#f3f3f3;border:1px solid #ccc;color:#111}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;text-align:left;border-bottom:1px dashed #ccc;font-size:13px}
+    .log{height:260px;overflow:auto;background:#f3f3f3;padding:10px;border-radius:8px;font-family:monospace;font-size:13px;color:#000}
+    .small{font-size:12px;color:var(--muted)}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px;color:#111}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    .nat-table td, .nat-table th{text-align:center}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}} 
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="pill">Network Layer · NAT (Task 8)</div>
+      <h1>Simple NAT Translation Simulator — single-page</h1>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Send Packet (from private network)</h3>
+        <div class="small">Configure a sender (private IP) and destination (public IP). We'll simulate NAT translating the source to a public IP:port and forwarding.
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Sender (Private) IP</label>
+          <input id="senderIp" value="192.168.1.10" />
+
+          <div style="height:8px"></div>
+          <label>Sender Source Port</label>
+          <input id="senderPort" value="52000" />
+
+          <div style="height:8px"></div>
+          <label>Destination (Public) IP</label>
+          <input id="dstIp" value="198.51.100.20" />
+
+          <div style="height:8px"></div>
+          <label>Destination Port</label>
+          <input id="dstPort" value="80" />
+
+          <div style="height:8px"></div>
+          <label>Protocol</label>
+          <select id="protocol">
+            <option>TCP</option>
+            <option>UDP</option>
+          </select>
+
+          <div style="height:8px"></div>
+          <label>Packet Payload (short)</label>
+          <input id="payload" value="GET /index.html" />
+
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="sendBtn">Send Packet →</button>
+            <button class="ghost" id="sendResponseBtn">Simulate Response ←</button>
+          </div>
+        </div>
+
+        <hr style="opacity:0.3;margin:16px 0" />
+
+        <h3>Logs</h3>
+        <div class="log" id="log"></div>
+      </section>
+
+      <aside class="card">
+        <h3>Live NAT Table</h3>
+        <div class="small">Shows active translations (private → public:port)</div>
+        <table class="nat-table" id="natTable">
+          <thead><tr><th>Private</th><th>Public:Port</th><th>Proto</th><th>Expires (s)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <hr style="opacity:0.3;margin:12px 0" />
+        <h3>Last Packet (visual)</h3>
+        <div class="small">Shows last original and translated IP headers</div>
+        <table style="margin-top:8px">
+          <tbody>
+            <tr><td class="small">Original</td><td id="origHdr" class="small"></td></tr>
+            <tr><td class="small">Translated</td><td id="transHdr" class="small"></td></tr>
+          </tbody>
+        </table>
+
+        <hr style="opacity:0.3;margin:12px 0" />
+        <h3>Quick Actions</h3>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="showState">Show NAT JSON</button>
+          <button id="clearLog" class="ghost">Clear Log</button>
+        </div>
+
+        <footer>
+          Tip: Use the <strong>Simulate Response</strong> button to craft a packet coming from the destination IP back to the NAT's public IP:port — NAT will reverse translate if a mapping exists, otherwise you'll see "Destination unreachable".
+        </footer>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // JS unchanged
+    (() => {
+      const nat = {
+        publicIp: "203.0.113.5",
+        portRange: [40000,49999],
+        timeout: 30,
+        table: [],
+        nextEphemeral() {
+          for (let p = this.portRange[0]; p <= this.portRange[1]; p++) {
+            if (!this.table.some(e=>e.publicPort===p)) return p;
+          }
+          return null;
+        },
+        allocate(publicPort){
+          if (!publicPort) publicPort = this.nextEphemeral();
+          return publicPort;
+        },
+        tickCleanup(){
+          const now = Date.now();
+          this.table = this.table.filter(e => e.static || e.expiry > now);
+        },
+        findByPrivate(ip, port, proto){
+          return this.table.find(e=>e.privateIp===ip && e.privatePort==port && e.proto===proto);
+        },
+        findByPublic(port, proto){
+          return this.table.find(e=>e.publicPort==port && e.proto===proto);
+        }
+      };
+
+      const logEl = document.getElementById('log');
+      const natTableEl = document.querySelector('#natTable tbody');
+      const origHdr = document.getElementById('origHdr');
+      const transHdr = document.getElementById('transHdr');
+
+      function log(...args){
+        const time = new Date().toLocaleTimeString();
+        logEl.innerHTML = `[${time}] ${args.join(' ')}\n` + logEl.innerHTML;
+      }
+
+      function renderNatTable(){
+        nat.tickCleanup();
+        natTableEl.innerHTML = '';
+        const now = Date.now();
+        nat.table.forEach(e=>{
+          const tr = document.createElement('tr');
+          const expires = e.static ? 'static' : Math.max(0, Math.round((e.expiry - now)/1000));
+          tr.innerHTML = `<td>${e.privateIp}:${e.privatePort}</td><td>${nat.publicIp}:${e.publicPort}</td><td>${e.proto}</td><td>${expires}</td>`;
+          natTableEl.appendChild(tr);
+        });
+      }
+
+      function showHeaders(original, translated){
+        origHdr.textContent = original ? `src=${original.srcIp}:${original.srcPort} → dst=${original.dstIp}:${original.dstPort} proto=${original.proto}` : '';
+        transHdr.textContent = translated ? `src=${translated.srcIp}:${translated.srcPort} → dst=${translated.dstIp}:${translated.dstPort} proto=${translated.proto}` : '';
+      }
+
+      function createPacket({srcIp, srcPort, dstIp, dstPort, proto, payload}){
+        return {srcIp, srcPort:+srcPort, dstIp, dstPort:+dstPort, proto, payload};
+      }
+
+      function translateOutgoing(packet){
+        let mapping = nat.findByPrivate(packet.srcIp, packet.srcPort, packet.proto);
+        if (!mapping){
+          const allocated = nat.allocate();
+          if (!allocated) { log('ERROR: No ephemeral ports available.'); return null; }
+          mapping = {privateIp:packet.srcIp, privatePort:packet.srcPort, publicPort:allocated, proto:packet.proto, static:false, expiry: Date.now() + nat.timeout*1000};
+          nat.table.push(mapping);
+          log('Dynamic mapping created:', `${packet.srcIp}:${packet.srcPort} -> ${nat.publicIp}:${allocated}`);
+        } else {
+          if (!mapping.static) mapping.expiry = Date.now() + nat.timeout*1000;
+          log('Mapping reused for', `${packet.srcIp}:${packet.srcPort} -> ${nat.publicIp}:${mapping.publicPort}`);
+        }
+
+        renderNatTable();
+
+        const translated = {...packet};
+        translated.originalSrc = `${packet.srcIp}:${packet.srcPort}`;
+        translated.srcIp = nat.publicIp;
+        translated.srcPort = mapping.publicPort;
+        return translated;
+      }
+
+      function handleIncoming(packet){
+        if (packet.dstIp !== nat.publicIp) {
+          log('Packet not for this NAT:', packet.dstIp);
+          return {status:'not-for-nat'};
+        }
+        const mapping = nat.findByPublic(packet.dstPort, packet.proto);
+        if (!mapping){
+          log('Destination unreachable for incoming packet to', `${nat.publicIp}:${packet.dstPort}`);
+          return {status:'unreachable'};
+        }
+        if (!mapping.static) mapping.expiry = Date.now() + nat.timeout*1000;
+        const translated = {...packet};
+        translated.dstIp = mapping.privateIp;
+        translated.dstPort = mapping.privatePort;
+        log('Incoming packet translated to', `${translated.dstIp}:${translated.dstPort}`);
+        renderNatTable();
+        return {status:'ok', packet:translated};
+      }
+
+      document.getElementById('sendBtn').addEventListener('click', ()=>{
+        const pkt = createPacket({
+          srcIp:document.getElementById('senderIp').value,
+          srcPort:document.getElementById('senderPort').value,
+          dstIp:document.getElementById('dstIp').value,
+          dstPort:document.getElementById('dstPort').value,
+          proto:document.getElementById('protocol').value,
+          payload:document.getElementById('payload').value
+        });
+
+        showHeaders(pkt, null);
+        log('Outgoing packet from private host', `${pkt.srcIp}:${pkt.srcPort} -> ${pkt.dstIp}:${pkt.dstPort} proto=${pkt.proto}`);
+
+        const translated = translateOutgoing(pkt);
+        if (!translated) { log('Translation failed.'); return; }
+        showHeaders(pkt, translated);
+        log('Sent on public network as', `${translated.srcIp}:${translated.srcPort} -> ${translated.dstIp}:${translated.dstPort}`);
+      });
+
+      document.getElementById('sendResponseBtn').addEventListener('click', ()=>{
+        const proto = document.getElementById('protocol').value;
+        const lastPrivate = document.getElementById('senderIp').value;
+        const lastPrivatePort = +document.getElementById('senderPort').value;
+        const mapping = nat.findByPrivate(lastPrivate, lastPrivatePort, proto);
+        if (!mapping){
+          log('No mapping exists for that private host. Simulate external host cannot reach private host.');
+          return;
+        }
+        const incoming = {srcIp: document.getElementById('dstIp').value, srcPort:+document.getElementById('dstPort').value, dstIp: nat.publicIp, dstPort: mapping.publicPort, proto};
+        log('Incoming packet from external host', `${incoming.srcIp}:${incoming.srcPort} -> ${incoming.dstIp}:${incoming.dstPort}`);
+        const res = handleIncoming(incoming);
+        if (res.status==='ok'){
+          log('Delivered to internal host as', `${res.packet.dstIp}:${res.packet.dstPort}`);
+        } else if (res.status==='unreachable'){
+          log('ICMP: Destination unreachable — no mapping for', `${incoming.dstIp}:${incoming.dstPort}`);
+        }
+      });
+
+      document.getElementById('showState').addEventListener('click', ()=>{
+        alert(JSON.stringify({publicIp:nat.publicIp, timeout:nat.timeout, table:nat.table},null,2));
+      });
+      document.getElementById('clearLog').addEventListener('click', ()=>{ logEl.innerHTML=''; });
+
+      setInterval(()=>{ renderNatTable(); }, 1000);
+
+      renderNatTable();
+      log('Simulator ready. Public NAT IP =', nat.publicIp);
+    })();
+  </script>
+</body>
+</html>

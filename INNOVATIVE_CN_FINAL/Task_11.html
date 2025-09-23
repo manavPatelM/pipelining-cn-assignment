@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dynamic Routing Simulator — Bellman-Ford</title>
+  <style>
+    :root{
+      --bg: #f7f9fc; /* light theme background */
+      --panel: #ffffff;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --node-dark: #0b1220; /* dark nodes */
+      --node-dark-2: #1f2937;
+      --edge: #cbd5e1;
+      --good: #10b981;
+      --bad: #ef4444;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+    .app{display:grid;grid-template-columns:360px 1fr;gap:18px;height:100vh;padding:18px}
+    .panel{background:var(--panel);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(12,16,24,0.06);overflow:auto}
+    h1{font-size:18px;margin:0 0 8px}
+    p.small{color:var(--muted);font-size:13px;margin:0 0 12px}
+    label{font-size:13px;color:#0f172a}
+    .control{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    input[type=range]{width:100%}
+    button{background:var(--accent);color:white;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+    button.secondary{background:#e6eefc;color:var(--accent)}
+    .row{display:flex;gap:8px}
+    .small-muted{font-size:12px;color:var(--muted)}
+    .graph-wrap{position:relative;background:linear-gradient(180deg,#ffffff, #fbfdff);border-radius:12px;padding:8px;height:100%}
+    svg{width:100%;height:100%;display:block}
+    .edge-label{font-size:12px;fill:#0b1220}
+    .node{cursor:pointer}
+    .node circle{stroke:#fff;stroke-width:3}
+    .ui-rows{display:grid;gap:8px}
+    .edge-item{display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:8px;background:#fbfdff}
+    .edge-item input{width:60px}
+    .status{padding:6px 8px;border-radius:8px;font-size:13px}
+    .ip-box{background:#0b1220;color:#fff;padding:8px;border-radius:8px;font-family:monospace;font-size:13px}
+    .legend{display:flex;gap:10px;align-items:center}
+    .legend .dot{width:12px;height:12px;border-radius:6px}
+    footer{font-size:12px;color:var(--muted);margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h1>Dynamic Routing Simulator (Bellman–Ford)</h1>
+      <p class="small">Simulate logical routing using IP addresses. The program computes the <strong>minimum-cost path</strong> using Bellman–Ford and dynamically recomputes when link costs change or links fail.</p>
+
+      <div class="ui-rows">
+        <div>
+          <label>Source</label>
+          <select id="srcSelect"></select>
+        </div>
+        <div>
+          <label>Destination</label>
+          <select id="dstSelect"></select>
+        </div>
+
+        <div>
+          <label>Preset Topology</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button id="preset1">Simple</button>
+            <button id="preset2" class="secondary">Mesh</button>
+            <button id="preset3" class="secondary">Custom</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Controls</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button id="compute">Compute Path</button>
+            <button id="sendPacket">Send Packet</button>
+            <button id="autoRecompute" class="secondary">Auto-Recompute: OFF</button>
+            <button id="reset">Reset</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Network Links (click to toggle active)</label>
+          <div id="edgesList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+        </div>
+
+        <div>
+          <label>Routing Result</label>
+          <div style="margin-top:8px">
+            <div id="resultPath" class="status">No computation yet</div>
+            <div style="margin-top:8px">
+              <div class="ip-box" id="ipHeader">IP Header: —</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label>Legend</label>
+          <div class="legend" style="margin-top:6px">
+            <div style="display:flex;gap:6px;align-items:center"><div class="dot" style="background:var(--node-dark)"></div><div class="small-muted">Node</div></div>
+            <div style="display:flex;gap:6px;align-items:center"><div class="dot" style="background:var(--good)"></div><div class="small-muted">Active Path</div></div>
+            <div style="display:flex;gap:6px;align-items:center"><div class="dot" style="background:var(--bad)"></div><div class="small-muted">Failed Link</div></div>
+          </div>
+        </div>
+
+        <footer>Tip: click a link in the list to toggle it. Change cost numbers to simulate congestion. Packet shows a simulated IP header while in transit.</footer>
+      </div>
+    </div>
+
+    <div class="graph-wrap panel">
+      <svg id="svgCanvas" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <script>
+    // ----- Graph data structures -----
+    let nodes = []
+    let edges = []
+    let autoRecompute = false
+    let currentPath = []
+
+    function makeNode(id,x,y,label,ip){
+      return {id,x,y,label,ip}
+    }
+    function makeEdge(u,v,cost,active=true){
+      return {u,v,cost:Number(cost),active}
+    }
+
+    // Preset topologies
+    function loadPreset(type){
+      if(type==='simple'){
+        nodes = [
+          makeNode('A',120,120,'A','10.0.0.1'),
+          makeNode('B',360,80,'B','10.0.0.2'),
+          makeNode('C',360,220,'C','10.0.0.3'),
+          makeNode('D',600,140,'D','10.0.0.4'),
+          makeNode('E',780,140,'E','10.0.0.5')
+        ]
+        edges = [
+          makeEdge('A','B',4), makeEdge('A','C',2),
+          makeEdge('B','C',1), makeEdge('B','D',5),
+          makeEdge('C','D',8), makeEdge('D','E',3)
+        ]
+      } else if(type==='mesh'){
+        nodes = [
+          makeNode('A',80,300,'A','192.168.1.1'),
+          makeNode('B',240,120,'B','192.168.1.2'),
+          makeNode('C',420,80,'C','192.168.1.3'),
+          makeNode('D',620,140,'D','192.168.1.4'),
+          makeNode('E',760,300,'E','192.168.1.5'),
+          makeNode('F',420,380,'F','192.168.1.6')
+        ]
+        edges = [
+          makeEdge('A','B',3),makeEdge('A','F',7),makeEdge('B','C',2),makeEdge('C','D',2),
+          makeEdge('B','F',4),makeEdge('C','F',3),makeEdge('D','E',4),makeEdge('F','E',6),makeEdge('B','D',6)
+        ]
+      } else { // custom small
+        nodes = [makeNode('A',120,120,'A','10.1.1.1'),makeNode('B',360,120,'B','10.1.1.2'),makeNode('C',600,120,'C','10.1.1.3')]
+        edges = [makeEdge('A','B',1),makeEdge('B','C',1),makeEdge('A','C',5)]
+      }
+      renderUI()
+      draw()
+    }
+
+    // ----- Rendering -----
+    const svg = document.getElementById('svgCanvas')
+    function clearSVG(){while(svg.firstChild) svg.removeChild(svg.firstChild)}
+
+    function draw(){
+      clearSVG()
+      // draw edges
+      edges.forEach((e,idx)=>{
+        const n1 = nodes.find(n=>n.id===e.u)
+        const n2 = nodes.find(n=>n.id===e.v)
+        if(!n1||!n2) return
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line')
+        line.setAttribute('x1',n1.x);line.setAttribute('y1',n1.y)
+        line.setAttribute('x2',n2.x);line.setAttribute('y2',n2.y)
+        line.setAttribute('stroke-width',4)
+        line.setAttribute('stroke-linecap','round')
+        line.setAttribute('data-edge',idx)
+        if(!e.active) line.setAttribute('stroke', 'var(--bad)')
+        else if(isEdgeInPath(e)) line.setAttribute('stroke','var(--good)')
+        else line.setAttribute('stroke','var(--edge)')
+        svg.appendChild(line)
+
+        // cost label
+        const mx = (n1.x+n2.x)/2; const my=(n1.y+n2.y)/2
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text')
+        text.setAttribute('x',mx+6);text.setAttribute('y',my-6)
+        text.setAttribute('class','edge-label')
+        text.textContent = e.cost + (e.active? '':' (down)')
+        svg.appendChild(text)
+      })
+
+      // draw nodes
+      nodes.forEach(n=>{
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g')
+        g.setAttribute('transform',`translate(${n.x},${n.y})`)
+        g.setAttribute('class','node')
+        g.addEventListener('click',()=>{selectNode(n.id)})
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle')
+        circle.setAttribute('r',24)
+        circle.setAttribute('fill','var(--node-dark)')
+        g.appendChild(circle)
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg','text')
+        label.setAttribute('x',0);label.setAttribute('y',6);label.setAttribute('text-anchor','middle')
+        label.setAttribute('fill','#fff');label.setAttribute('font-size','13')
+        label.textContent = n.label
+        g.appendChild(label)
+
+        svg.appendChild(g)
+      })
+    }
+
+    function isEdgeInPath(e){
+      if(!currentPath || currentPath.length<2) return false
+      for(let i=0;i<currentPath.length-1;i++){
+        const a=currentPath[i], b=currentPath[i+1]
+        if((e.u===a && e.v===b) || (e.u===b && e.v===a)) return true
+      }
+      return false
+    }
+
+    // ----- UI interactions -----
+    function renderUI(){
+      const srcSel = document.getElementById('srcSelect')
+      const dstSel = document.getElementById('dstSelect')
+      srcSel.innerHTML='';dstSel.innerHTML=''
+      nodes.forEach(n=>{
+        const o1 = document.createElement('option');o1.value=n.id; o1.textContent=n.label+' ('+n.ip+')'
+        const o2 = o1.cloneNode(true)
+        srcSel.appendChild(o1);dstSel.appendChild(o2)
+      })
+
+      // edges list
+      const edgesList = document.getElementById('edgesList')
+      edgesList.innerHTML=''
+      edges.forEach((e,idx)=>{
+        const div = document.createElement('div');div.className='edge-item'
+        div.innerHTML = `<div>${e.u} ↔ ${e.v}</div><div style="display:flex;gap:6px;align-items:center"><input data-idx="${idx}" type="number" value="${e.cost}" min="0" style="width:64px" /> <button data-tgl="${idx}">${e.active? 'Disable':'Enable'}</button></div>`
+        edgesList.appendChild(div)
+      })
+
+      // attach edge controls
+      edgesList.querySelectorAll('input[type=number]').forEach(inp=>{
+        inp.addEventListener('change',ev=>{
+          const idx = Number(ev.target.getAttribute('data-idx'))
+          edges[idx].cost = Number(ev.target.value)
+          if(autoRecompute) computeAndDisplay()
+          draw()
+        })
+      })
+      edgesList.querySelectorAll('button[data-tgl]').forEach(btn=>{
+        btn.addEventListener('click',ev=>{
+          const idx = Number(ev.target.getAttribute('data-tgl'))
+          edges[idx].active = !edges[idx].active
+          btn.textContent = edges[idx].active? 'Disable':'Enable'
+          if(autoRecompute) computeAndDisplay()
+          draw()
+        })
+      })
+
+      document.getElementById('resultPath').textContent = 'No computation yet'
+      document.getElementById('ipHeader').textContent = 'IP Header: —'
+    }
+
+    function selectNode(id){
+      // quick set selected node as source (shift-click for dest?)
+      // For simplicity: set as source
+      document.getElementById('srcSelect').value = id
+    }
+
+    // ----- Bellman-Ford Algorithm -----
+    function bellmanFord(src){
+      // graph represented by edges; nodes list
+      const dist = {};
+      const prev = {};
+      nodes.forEach(n=>{dist[n.id]=Infinity;prev[n.id]=null})
+      dist[src]=0
+      const activeEdges = edges.filter(e=>e.active)
+      const V = nodes.length
+      for(let i=0;i<V-1;i++){
+        let relaxed=false
+        for(const e of activeEdges){
+          if(dist[e.u] + e.cost < dist[e.v]){ dist[e.v] = dist[e.u]+e.cost; prev[e.v]=e.u; relaxed=true }
+          if(dist[e.v] + e.cost < dist[e.u]){ dist[e.u] = dist[e.v]+e.cost; prev[e.u]=e.v; relaxed=true }
+        }
+        if(!relaxed) break
+      }
+      // optionally detect negative cycles (not expected here)
+      return {dist,prev}
+    }
+
+    function reconstructPath(prev, src, dst){
+      const path = []
+      let cur = dst
+      if(prev[cur]===null && cur!==src){
+        // check if direct source==dst
+        if(cur===src) return [src]
+        return []
+      }
+      while(cur!==null){ path.unshift(cur); if(cur===src) break; cur = prev[cur] }
+      if(path[0]!==src) return []
+      return path
+    }
+
+    function computeAndDisplay(){
+      const src = document.getElementById('srcSelect').value
+      const dst = document.getElementById('dstSelect').value
+      if(!src || !dst){alert('select source and destination'); return}
+      const {dist,prev} = bellmanFord(src)
+      const path = reconstructPath(prev,src,dst)
+      currentPath = path
+      if(path.length===0){
+        document.getElementById('resultPath').textContent = `No path from ${src} to ${dst}`
+        document.getElementById('ipHeader').textContent = 'IP Header: —'
+      } else {
+        document.getElementById('resultPath').textContent = `Path: ${path.join(' → ')}  (cost: ${dist[dst]})`
+        // simulate an IP header for the packet
+        const sNode = nodes.find(n=>n.id===src)
+        const dNode = nodes.find(n=>n.id===dst)
+        document.getElementById('ipHeader').textContent = `IP Header: src=${sNode.ip} dst=${dNode.ip} ttl=64 proto=TCP`;
+      }
+      draw()
+    }
+
+    // ----- Packet animation -----
+    async function sendPacket(){
+      if(!currentPath || currentPath.length<2){ alert('No computed path. Click Compute Path first.'); return }
+      const pkt = document.createElementNS('http://www.w3.org/2000/svg','circle')
+      pkt.setAttribute('r',8); pkt.setAttribute('fill','var(--accent)')
+      svg.appendChild(pkt)
+      for(let i=0;i<currentPath.length-1;i++){
+        const a = nodes.find(n=>n.id===currentPath[i])
+        const b = nodes.find(n=>n.id===currentPath[i+1])
+        await animateMove(pkt,a.x,a.y,b.x,b.y,600)
+        // update TTL in ip header
+        const ipTextEl = document.getElementById('ipHeader')
+        let ipText = ipTextEl.textContent
+        const m = ipText.match(/ttl=(\d+)/)
+        if(m){
+          let ttl = Number(m[1]) - 1; if(ttl<0) ttl=0
+          ipTextEl.textContent = ipText.replace(/ttl=\d+/,`ttl=${ttl}`)
+        }
+      }
+      // arrival
+      pkt.animate([{opacity:1},{opacity:0}],{duration:400,fill:'forwards'})
+      setTimeout(()=>{ if(pkt.parentNode) pkt.parentNode.removeChild(pkt) },500)
+    }
+
+    function animateMove(el,x1,y1,x2,y2,duration){
+      return new Promise(resolve=>{
+        const start = performance.now()
+        function step(t){
+          const p = Math.min(1,(t-start)/duration)
+          const cx = x1 + (x2-x1)*p
+          const cy = y1 + (y2-y1)*p
+          el.setAttribute('cx',cx);el.setAttribute('cy',cy)
+          if(p<1) requestAnimationFrame(step)
+          else resolve()
+        }
+        requestAnimationFrame(step)
+      })
+    }
+
+    // ----- Controls wiring -----
+    document.getElementById('compute').addEventListener('click',computeAndDisplay)
+    document.getElementById('sendPacket').addEventListener('click',sendPacket)
+    document.getElementById('autoRecompute').addEventListener('click',()=>{
+      autoRecompute = !autoRecompute
+      document.getElementById('autoRecompute').textContent = 'Auto-Recompute: ' + (autoRecompute? 'ON':'OFF')
+      if(autoRecompute) computeAndDisplay()
+    })
+    document.getElementById('reset').addEventListener('click',()=>{ loadPreset('simple') })
+    document.getElementById('preset1').addEventListener('click',()=>{ loadPreset('simple') })
+    document.getElementById('preset2').addEventListener('click',()=>{ loadPreset('mesh') })
+    document.getElementById('preset3').addEventListener('click',()=>{ loadPreset('custom') })
+
+    // keyboard shortcuts
+    window.addEventListener('keydown',(e)=>{
+      if(e.key==='c') computeAndDisplay()
+      if(e.key==='s') sendPacket()
+    })
+
+    // initial load
+    loadPreset('simple')
+  </script>
+</body>
+</html>
