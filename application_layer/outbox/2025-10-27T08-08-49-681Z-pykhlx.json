@@ -1,0 +1,23 @@
+{
+  "headers": {
+    "sender": "dhf ",
+    "receiver": "weufb"
+  },
+  "content": {
+    "message": "hello world",
+    "file": {
+      "path": "E:\\nirma sem 5 material\\CN\\assignment_node\\outbox\\uploads\\OR_assignment_23BCE196.pdf",
+      "name": "OR_assignment_23BCE196.pdf",
+      "sanitized_name": "OR_assignment_23BCE196.pdf",
+      "size_bytes": 5701784,
+      "mime_type": "application/pdf"
+    }
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T08:08:49.681Z",
+    "schema": "application.input.v1"
+  }
+}

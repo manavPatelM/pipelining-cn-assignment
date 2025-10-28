@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "sender": "Sfe",
+    "receiver": "sdf"
+  },
+  "content": {
+    "message": "df",
+    "file": null
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T09:33:48.166Z",
+    "schema": "application.input.v1"
+  }
+}

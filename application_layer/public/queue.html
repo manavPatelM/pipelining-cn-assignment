@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Queue Manager</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/sidebar.css">
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .stat-card {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 8px 0;
+    }
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .queue-item {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status-queued { background: #1e3a8a; color: #93c5fd; }
+    .status-processing { background: #854d0e; color: #fcd34d; }
+    .status-retry { background: #7c2d12; color: #fdba74; }
+    .status-failed { background: #7f1d1d; color: #fca5a5; }
+    .action-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #0b1322;
+      color: var(--accent);
+    }
+    .action-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+    .danger-btn {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border-color: #7f1d1d;
+    }
+    .danger-btn:hover {
+      background: #991b1b;
+      color: white;
+    }
+    .empty-queue {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body class="bg">
+  <script src="/sidebar.js"></script>
+  <script>document.write(createSidebar('queue'))</script>
+  
+  <div class="content-with-sidebar">
+  <header class="topbar">
+    <div class="brand">Message Queue Manager</div>
+  </header>
+
+  <main class="shell">
+    <section class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Message Queue</h1>
+          <p class="muted">Manage buffered messages before sending</p>
+        </div>
+        <button onclick="refreshQueue()" style="padding: 8px 16px;">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats">
+        <div class="stat-card">
+          <div class="stat-label">Total</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Queued</div>
+          <div class="stat-value" id="statQueued" style="color: #93c5fd;">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Processing</div>
+          <div class="stat-value" id="statProcessing" style="color: #fcd34d;">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Retry</div>
+          <div class="stat-value" id="statRetry" style="color: #fdba74;">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Failed</div>
+          <div class="stat-value" id="statFailed" style="color: #fca5a5;">0</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="margin: 20px 0; padding: 16px; background: #0b1322; border: 1px solid var(--border); border-radius: 8px;">
+        <h3 style="margin: 0 0 12px 0;">Queue Actions</h3>
+        <div style="display: flex; gap: 12px;">
+          <button onclick="processQueue()" id="processBtn" style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer;">
+            ▶️ Process Queue
+          </button>
+          <button onclick="clearQueue()" class="danger-btn" style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+            🗑️ Clear Queue
+          </button>
+          <a href="/" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            ➕ Add Messages
+          </a>
+        </div>
+      </div>
+
+      <!-- Queue Messages -->
+      <div style="margin-top: 20px;">
+        <h3>Queued Messages</h3>
+        <div id="queueList">
+          <div class="empty-queue">Loading queue...</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <a href="/" style="padding: 8px 16px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; display: inline-block;">
+            ← Message Composer
+          </a>
+          <a href="/outbox" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            � Transfer History
+          </a>
+          <a href="/test-get-presentation" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            🧪 Test GET Presentation
+          </a>
+          <a href="/transfer" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            🔄 File Transfer Simulator
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Queue saved in outbox/queue/
+  </footer>
+  </div>
+
+  <script>
+    let autoRefresh = null
+
+    async function refreshQueue() {
+      try {
+        const response = await fetch('/api/v1/application/queue/status')
+        const data = await response.json()
+
+        if (data.success) {
+          // Update stats
+          document.getElementById('statTotal').textContent = data.queue.size
+          document.getElementById('statQueued').textContent = data.queue.stats.queued || 0
+          document.getElementById('statProcessing').textContent = data.queue.stats.processing || 0
+          document.getElementById('statRetry').textContent = data.queue.stats.retry || 0
+          document.getElementById('statFailed').textContent = data.queue.stats.failed || 0
+
+          // Update queue list
+          const listDiv = document.getElementById('queueList')
+          
+          if (data.messages.length === 0) {
+            listDiv.innerHTML = '<div class="empty-queue">No messages in queue. <a href="/" style="color: var(--accent);">Add messages →</a></div>'
+          } else {
+            listDiv.innerHTML = data.messages.map(msg => `
+              <div class="queue-item">
+                <div class="queue-header">
+                  <div>
+                    <span class="status-badge status-${msg.status}">${msg.status}</span>
+                    <strong style="margin-left: 12px;">${msg.sender} → ${msg.receiver}</strong>
+                    ${msg.hasFile ? '<span style="margin-left: 8px; color: var(--muted); font-size: 12px;">📎 Has file</span>' : ''}
+                  </div>
+                  <button onclick="removeMessage('${msg.id}')" class="action-btn danger-btn">
+                    ✕ Remove
+                  </button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 13px;">
+                  <div>
+                    <div style="color: var(--muted);">Queue ID</div>
+                    <div style="font-family: monospace; font-size: 11px;">${msg.id}</div>
+                  </div>
+                  <div>
+                    <div style="color: var(--muted);">Queued At</div>
+                    <div>${new Date(msg.queuedAt).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style="color: var(--muted);">Attempts</div>
+                    <div>${msg.attempts}/${msg.maxAttempts}</div>
+                  </div>
+                  ${msg.error ? `
+                  <div style="grid-column: 1 / -1;">
+                    <div style="color: var(--muted);">Error</div>
+                    <div style="color: #fca5a5; font-size: 12px;">${msg.error}</div>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')
+          }
+
+          // Update process button
+          const processBtn = document.getElementById('processBtn')
+          if (data.queue.processing) {
+            processBtn.disabled = true
+            processBtn.textContent = '⏳ Processing...'
+            processBtn.style.opacity = '0.6'
+          } else {
+            processBtn.disabled = false
+            processBtn.textContent = '▶️ Process Queue'
+            processBtn.style.opacity = '1'
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing queue:', error)
+        document.getElementById('queueList').innerHTML = 
+          `<div class="empty-queue" style="color: #ef4444;">Error loading queue: ${error.message}</div>`
+      }
+    }
+
+    async function processQueue() {
+      try {
+        const response = await fetch('/api/v1/application/queue/process', {
+          method: 'POST'
+        })
+        const data = await response.json()
+
+        if (data.success) {
+          alert('✅ Queue processing started!')
+          startAutoRefresh()
+        } else {
+          alert('❌ ' + data.error.message)
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message)
+      }
+    }
+
+    async function clearQueue() {
+      if (!confirm('Are you sure you want to clear the entire queue? This cannot be undone.')) {
+        return
+      }
+
+      try {
+        const response = await fetch('/api/v1/application/queue/clear', {
+          method: 'POST'
+        })
+        const data = await response.json()
+
+        if (data.success) {
+          alert('✅ Queue cleared!')
+          refreshQueue()
+        } else {
+          alert('❌ ' + data.error.message)
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message)
+      }
+    }
+
+    async function removeMessage(id) {
+      try {
+        const response = await fetch(`/api/v1/application/queue/${id}`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+
+        if (data.success) {
+          refreshQueue()
+        } else {
+          alert('❌ ' + data.error.message)
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message)
+      }
+    }
+
+    function startAutoRefresh() {
+      if (autoRefresh) return
+      autoRefresh = setInterval(refreshQueue, 2000) // Refresh every 2 seconds
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefresh) {
+        clearInterval(autoRefresh)
+        autoRefresh = null
+      }
+    }
+
+    // Initial load
+    refreshQueue()
+
+    // Auto-refresh when queue is being processed
+    setInterval(() => {
+      const processBtn = document.getElementById('processBtn')
+      if (processBtn.disabled) {
+        refreshQueue()
+      }
+    }, 2000)
+  </script>
+</body>
+</html>

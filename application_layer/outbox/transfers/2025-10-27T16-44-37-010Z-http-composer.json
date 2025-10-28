@@ -1,0 +1,38 @@
+{
+  "protocol": "HTTP",
+  "timestamp": "2025-10-27T16:44:37.010Z",
+  "source": {
+    "host": "efwa",
+    "ip": "192.168.43.119",
+    "port": 3000
+  },
+  "destination": {
+    "host": "waef",
+    "ip": "192.168.235.144",
+    "port": 3000
+  },
+  "file": {
+    "name": "message.json",
+    "size": 5,
+    "path": null,
+    "mode": "binary"
+  },
+  "transfer": {
+    "duration_seconds": 1,
+    "average_speed_kbps": 50,
+    "status": "completed",
+    "chunks_sent": 1
+  },
+  "protocol_details": {
+    "method": "POST",
+    "endpoint": "/api/v1/application/ui/submit",
+    "content_type": "multipart/form-data",
+    "response_code": 201
+  },
+  "meta": {
+    "created_at": "2025-10-27T16:44:37.010Z",
+    "schema": "message_composer_transfer.v1",
+    "has_message": true,
+    "has_file": false
+  }
+}

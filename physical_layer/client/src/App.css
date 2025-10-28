@@ -1,0 +1,336 @@
+/* Intentionally minimal. This app uses Tailwind via index.css. */
+
+/* Custom component-scoped overrides can go here if needed. */
+
+/* Example utility override */
+.waveform-container {
+  /* Ensure charts don't overflow their cards */
+  width: 100%;
+}
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+/* Custom slider styles *//* Custom slider styles */
+
+.slider {.slider {
+
+  background: #e2e8f0;  background: #e2e8f0;
+
+  outline: none;  outline: none;
+
+  border-radius: 0.375rem;  border-radius: 0.375rem;
+
+  height: 0.5rem;  height: 0.5rem;
+
+  -webkit-appearance: none;  -webkit-appearance: none;
+
+  appearance: none;  appearance: none;
+
+}}
+
+
+
+.slider::-webkit-slider-thumb {.slider::-webkit-slider-thumb {
+
+  -webkit-appearance: none;  -webkit-appearance: none;
+
+  appearance: none;  appearance: none;
+
+  width: 1rem;  width: 1rem;
+
+  height: 1rem;  height: 1rem;
+
+  border-radius: 50%;  border-radius: 50%;
+
+  background: #3b82f6;  background: #3b82f6;
+
+  cursor: pointer;  cursor: pointer;
+
+  border: none;  border: none;
+
+}}
+
+
+
+.slider::-moz-range-thumb {.slider::-moz-range-thumb {
+
+  width: 1rem;  width: 1rem;
+
+  height: 1rem;  height: 1rem;
+
+  border-radius: 50%;  border-radius: 50%;
+
+  background: #3b82f6;  background: #3b82f6;
+
+  cursor: pointer;  cursor: pointer;
+
+  border: none;  border: none;
+
+}}
+
+
+
+/* Button hover effects *//* Button hover effects */
+
+.btn-primary {.btn-primary {
+
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+
+}}
+
+
+
+.btn-secondary {.btn-secondary {
+
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200;  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+
+}}
+
+
+
+.btn-success {.btn-success {
+
+  @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;  @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+
+}}
+
+
+
+.btn-danger {.btn-danger {
+
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+
+}}
+
+
+
+/* Card styles *//* Card styles */
+
+.card {.card {
+
+  @apply bg-white rounded-lg shadow-md border border-gray-200;  @apply bg-white rounded-lg shadow-md border border-gray-200;
+
+}}
+
+
+
+.card-header {.card-header {
+
+  @apply px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg;  @apply px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg;
+
+}}
+
+
+
+.card-body {.card-body {
+
+  @apply p-6;  @apply p-6;
+
+}}
+
+
+
+/* Form styles *//* Form styles */
+
+.form-input {.form-input {
+
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+
+}}
+
+
+
+.form-select {.form-select {
+
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white;  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white;
+
+}}
+
+
+
+/* Progress bar *//* Progress bar */
+
+.progress-bar {.progress-bar {
+
+  @apply bg-gray-200 rounded-full h-2;  @apply bg-gray-200 rounded-full h-2;
+
+}}
+
+
+
+.progress-fill {.progress-fill {
+
+  @apply bg-blue-600 h-2 rounded-full transition-all duration-300;  @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+
+}}
+
+
+
+/* Sidebar *//* Sidebar */
+
+.sidebar {.sidebar {
+
+  @apply bg-white border-r border-gray-200 overflow-y-auto;  @apply bg-white border-r border-gray-200 overflow-y-auto;
+
+}}
+
+
+
+.sidebar-item {.sidebar-item {
+
+  @apply px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 transition-colors duration-150;  @apply px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 transition-colors duration-150;
+
+}}
+
+
+
+.sidebar-item.active {.sidebar-item.active {
+
+  @apply bg-blue-50 text-blue-700 border-r-2 border-blue-700;  @apply bg-blue-50 text-blue-700 border-r-2 border-blue-700;
+
+}}
+
+
+
+.sidebar-item.completed {.sidebar-item.completed {
+
+  @apply bg-green-50 text-green-700;  @apply bg-green-50 text-green-700;
+
+}}
+
+
+
+/* Waveform chart container *//* Waveform chart container */
+
+.chart-container {.chart-container {
+
+  @apply bg-white p-4 rounded-lg border border-gray-200 shadow-sm;  @apply bg-white p-4 rounded-lg border border-gray-200 shadow-sm;
+
+}}
+
+
+
+/* Export button *//* Export button */
+
+.export-btn {.export-btn {
+
+  @apply bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2;  @apply bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2;
+
+}}
+
+
+
+/* Parameter controls *//* Parameter controls */
+
+.parameter-control {.parameter-control {
+
+  @apply mb-4;  @apply mb-4;
+
+}}
+
+
+
+.parameter-label {.parameter-label {
+
+  @apply block text-sm font-medium text-gray-700 mb-2;  @apply block text-sm font-medium text-gray-700 mb-2;
+
+}}
+
+
+
+.parameter-value {.parameter-value {
+
+  @apply text-sm text-gray-500 ml-2;  @apply text-sm text-gray-500 ml-2;
+
+}}
+  opacity: 0.7;
+  transition: opacity .2s;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Animation utilities */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Responsive grid utilities */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+  }
+  
+  .no-print {
+    display: none;
+  }
+  
+  .step-container {
+    break-inside: avoid;
+    margin-bottom: 2rem;
+  }
+}

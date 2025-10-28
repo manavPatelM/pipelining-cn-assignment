@@ -1,0 +1,38 @@
+{
+  "protocol": "HTTP",
+  "timestamp": "2025-10-27T08:59:09.065Z",
+  "source": {
+    "host": "nick",
+    "ip": "192.168.99.151",
+    "port": 3000
+  },
+  "destination": {
+    "host": "efewf",
+    "ip": "192.168.179.45",
+    "port": 3000
+  },
+  "file": {
+    "name": "fileInput.txt",
+    "size": 2711,
+    "path": "outbox\\uploads\\fileInput.txt",
+    "mode": "binary"
+  },
+  "transfer": {
+    "duration_seconds": 1,
+    "average_speed_kbps": 50,
+    "status": "completed",
+    "chunks_sent": 1
+  },
+  "protocol_details": {
+    "method": "POST",
+    "endpoint": "/api/v1/application/ui/submit",
+    "content_type": "multipart/form-data",
+    "response_code": 201
+  },
+  "meta": {
+    "created_at": "2025-10-27T08:59:09.066Z",
+    "schema": "message_composer_transfer.v1",
+    "has_message": true,
+    "has_file": true
+  }
+}

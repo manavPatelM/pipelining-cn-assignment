@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "sender": "edew",
+    "receiver": "we"
+  },
+  "content": {
+    "message": "ererr",
+    "file": null
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T16:44:01.644Z",
+    "schema": "application.input.v1"
+  }
+}

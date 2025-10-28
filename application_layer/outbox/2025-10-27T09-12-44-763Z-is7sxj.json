@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "sender": "wfer",
+    "receiver": "adfaf"
+  },
+  "content": {
+    "message": "aewfaer",
+    "file": null
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T09:12:44.763Z",
+    "schema": "application.input.v1"
+  }
+}

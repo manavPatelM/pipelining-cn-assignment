@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Application Layer - Input</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/sidebar.css" />
+</head>
+<body class="bg">
+  <script src="/sidebar.js"></script>
+  <script>document.write(createSidebar('composer'))</script>
+  
+  <div class="content-with-sidebar">
+  <header class="topbar">
+    <div class="brand">Application Layer • Input</div>
+  </header>
+  <main class="shell">
+    <section class="card">
+      <h1>Compose or Upload</h1>
+      <p class="muted">Provide sender/receiver and a message or file. We will save a structured envelope to the outbox.</p>
+      <form id="app-form" class="grid">
+        <div class="row">
+          <label>Sender
+            <input name="sender" id="sender" required placeholder="student1@app" />
+            <div class="helper">
+              <span id="senderIP" style="color: var(--accent); font-size: 11px;"></span>
+            </div>
+          </label>
+          <label>Receiver
+            <input name="receiver" id="receiver" required placeholder="presentation" />
+            <div class="helper">
+              <span id="receiverIP" style="color: var(--accent); font-size: 11px;"></span>
+            </div>
+          </label>
+        </div>
+
+        <label>Message
+          <textarea id="message" name="message" rows="4" placeholder="Type your message (optional)"></textarea>
+          <div class="helper"><span id="count">0</span> characters</div>
+        </label>
+
+        <div class="dropzone" id="dropzone">
+          <div class="dz-inner">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m-7-7h14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>
+            <div><strong>Drag & drop</strong> a file here or <span class="link" id="pick">browse</span></div>
+            <div class="muted small" id="fileInfo">No file selected</div>
+          </div>
+          <input type="file" id="file" name="file" hidden />
+        </div>
+
+        <div class="row">
+          <label>Preferred Format
+            <select id="format" name="format">
+              <option value="json" selected>json</option>
+              <option value="xml">xml</option>
+            </select>
+          </label>
+          <label>Transfer Protocol
+            <select id="protocol" name="protocol">
+              <option value="http" selected>HTTP</option>
+              <option value="ftp">FTP</option>
+              <option value="https">HTTPS</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Transfer Mode
+            <select id="transferMode" name="transferMode">
+              <option value="binary" selected>Binary</option>
+              <option value="ascii">ASCII</option>
+            </select>
+          </label>
+          <label>Chunk Size (KB)
+            <input type="number" id="chunkSize" name="chunkSize" value="32" min="8" max="1024" />
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button type="submit" class="primary" style="flex: 1;">Save to Outbox</button>
+          <button type="button" onclick="addToQueue()" style="flex: 1; background: #1e3a8a; color: #93c5fd; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            📋 Add to Queue
+          </button>
+        </div>
+        <div id="status" class="status" aria-live="polite"></div>
+      </form>
+
+      <!-- Transfer Simulation Section -->
+      <div id="transferSection" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h2 style="font-size: 18px; margin-bottom: 12px;">📡 Transfer Simulation</h2>
+        
+        <!-- Validation Results -->
+        <div id="validationResults" style="background: #0b1322; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <h3 style="font-size: 14px; margin: 0 0 8px 0; color: var(--accent);">Validation Check</h3>
+          <div id="validationList"></div>
+        </div>
+
+        <!-- Transfer Progress -->
+        <div style="background: #0b1322; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <h3 style="font-size: 14px; margin: 0 0 8px 0; color: var(--accent);">Transfer Progress</h3>
+          <div style="background: #0f1b33; border: 1px solid var(--border); border-radius: 6px; height: 24px; overflow: hidden;">
+            <div id="progressBar" style="height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-600)); width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">0%</div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; font-size: 12px;">
+            <div>
+              <div style="color: var(--muted);">Protocol</div>
+              <div style="color: var(--accent); font-weight: 600;" id="simProtocol">HTTP</div>
+            </div>
+            <div>
+              <div style="color: var(--muted);">Data Size</div>
+              <div style="color: var(--accent); font-weight: 600;" id="simSize">0 KB</div>
+            </div>
+            <div>
+              <div style="color: var(--muted);">Status</div>
+              <div style="color: var(--accent); font-weight: 600;" id="simStatus">Idle</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transfer Log -->
+        <div style="background: #0b1322; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <h3 style="font-size: 14px; margin: 0 0 8px 0; color: var(--accent);">Transfer Log</h3>
+          <div id="transferLog" style="font-family: 'Courier New', monospace; font-size: 11px; max-height: 150px; overflow-y: auto; color: var(--muted);"></div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <a href="/queue" style="padding: 8px 16px; background: #1e3a8a; color: #93c5fd; border-radius: 6px; text-decoration: none; display: inline-block;">
+            📋 Message Queue
+          </a>
+          <a href="/outbox" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            📁 Transfer History
+          </a>
+          <a href="/test-get-presentation" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            🧪 Test GET Presentation
+          </a>
+          <a href="/transfer" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            � File Transfer Simulator
+          </a>
+  </main>
+  <footer class="footer">Outbox directory: <code>outbox/</code></footer>
+  </div>
+  <script src="/main.js"></script>
+</body>
+</html>

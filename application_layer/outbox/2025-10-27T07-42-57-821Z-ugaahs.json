@@ -1,0 +1,21 @@
+{
+  "headers": {
+    "sender": "dhf ",
+    "receiver": "weufb"
+  },
+  "content": {
+    "message": "hello",
+    "file": {
+      "path": "E:\\nirma sem 5 material\\CN\\assignment_node\\outbox\\uploads\\Amazon Product Review.txt",
+      "name": "Amazon Product Review.txt",
+      "size_bytes": 9676922
+    }
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T07:42:57.820Z",
+    "schema": "application.input.v1"
+  }
+}

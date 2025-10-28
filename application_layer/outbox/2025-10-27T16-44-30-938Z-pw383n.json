@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "sender": "efwa",
+    "receiver": "waef"
+  },
+  "content": {
+    "message": "weafa",
+    "file": null
+  },
+  "preferences": {
+    "format": "json"
+  },
+  "meta": {
+    "created_at": "2025-10-27T16:44:30.937Z",
+    "schema": "application.input.v1"
+  }
+}

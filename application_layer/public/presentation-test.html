@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Send to Presentation Layer</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/sidebar.css">
+  <style>
+    .endpoint-box {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .method-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #3b82f6;
+      color: white;
+    }
+    .method-badge.get {
+      background: #10b981;
+    }
+    .endpoint-path {
+      font-family: monospace;
+      color: var(--accent);
+    }
+    .json-output {
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+      max-height: 500px;
+    }
+    .json-output pre {
+      margin: 0;
+      color: #a5f3fc;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .test-btn {
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body class="bg">
+  <script src="/sidebar.js"></script>
+  <script>document.write(createSidebar('presentation-post'))</script>
+  
+  <div class="content-with-sidebar">
+  <header class="topbar">
+    <div class="brand">Presentation Layer API</div>
+  </header>
+
+  <main class="shell">
+    <section class="card">
+      <h1>Send Data to Presentation Layer</h1>
+      <p class="muted">Test API endpoints that prepare Application layer data for the Presentation layer (OSI Layer 6)</p>
+
+      <!-- Endpoint 1: POST send-to-presentation -->
+      <div class="endpoint-box">
+        <div class="endpoint-header">
+          <span class="method-badge">POST</span>
+          <span class="endpoint-path">/api/v1/application/send-to-presentation</span>
+        </div>
+        <p style="color: var(--muted); font-size: 14px;">
+          Send new data to the Presentation layer with full metadata
+        </p>
+        
+        <form id="testForm" style="margin-top: 16px;">
+          <div style="display: grid; gap: 12px;">
+            <div>
+              <label>Sender</label>
+              <input type="text" id="sender" value="application.server" required>
+            </div>
+            <div>
+              <label>Receiver</label>
+              <input type="text" id="receiver" value="client.example.com" required>
+            </div>
+            <div>
+              <label>Message</label>
+              <textarea id="message" rows="3" placeholder="Test message for presentation layer">Hello from Application Layer! This data will be formatted by the Presentation layer.</textarea>
+            </div>
+            <div>
+              <label>Protocol</label>
+              <select id="protocol">
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="ftp">FTP</option>
+              </select>
+            </div>
+            <div>
+              <label>Transfer Mode</label>
+              <select id="transferMode">
+                <option value="binary">Binary</option>
+                <option value="ascii">ASCII</option>
+              </select>
+            </div>
+            <div>
+              <label>Format</label>
+              <select id="format">
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+              </select>
+            </div>
+            <div>
+              <label>File (optional)</label>
+              <input type="file" id="file">
+            </div>
+          </div>
+          <button type="submit" class="test-btn">Send to Presentation Layer</button>
+        </form>
+      </div>
+
+      <!-- Endpoint 2: GET send-to-presentation/:id -->
+      <div class="endpoint-box">
+        <div class="endpoint-header">
+          <span class="method-badge get">GET</span>
+          <span class="endpoint-path">/api/v1/application/send-to-presentation/:envelopeId</span>
+        </div>
+        <p style="color: var(--muted); font-size: 14px;">
+          Retrieve existing envelope and prepare it for Presentation layer
+        </p>
+        
+        <div style="margin-top: 16px; display: flex; gap: 8px;">
+          <input type="text" id="envelopeId" placeholder="Envelope ID (e.g., 2025-10-27T08-32-09-517Z-725y0y)" style="flex: 1;">
+          <button onclick="testGetEndpoint()" class="test-btn">Fetch & Prepare</button>
+        </div>
+      </div>
+
+      <!-- Response Output -->
+      <div id="responseSection" style="display: none;">
+        <h3>API Response</h3>
+        <div class="json-output">
+          <pre id="responseOutput"></pre>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <a href="/" style="padding: 8px 16px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; display: inline-block;">
+            ← Message Composer
+          </a>
+          <a href="/queue" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            📋 Message Queue
+          </a>
+          <a href="/outbox" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            📦 Transfer History
+          </a>
+          <a href="/test-get-presentation" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            🧪 GET Presentation Test
+          </a>
+          <a href="/transfer" style="padding: 8px 16px; background: #0b1322; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; display: inline-block;">
+            � File Transfer Simulator
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Application Layer → Presentation Layer Bridge
+  </footer>
+  </div>
+
+  <script>
+    // DNS mapping (same as main.js)
+    const domainToIP = {}
+
+    function generateIP(domain) {
+      let hash = 0
+      for (let i = 0; i < domain.length; i++) {
+        hash = ((hash << 5) - hash) + domain.charCodeAt(i)
+        hash = hash & hash
+      }
+      const octet1 = 192
+      const octet2 = 168
+      const octet3 = Math.abs(hash % 256)
+      const octet4 = Math.abs((hash >> 8) % 256)
+      return `${octet1}.${octet2}.${octet3}.${octet4}`
+    }
+
+    function resolveDomainToIP(domain) {
+      if (!domain || domain.trim().length === 0) return null
+      const trimmedDomain = domain.trim().toLowerCase()
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/
+      if (ipPattern.test(trimmedDomain)) return trimmedDomain
+      if (domainToIP[trimmedDomain]) return domainToIP[trimmedDomain]
+      const ip = generateIP(trimmedDomain)
+      domainToIP[trimmedDomain] = ip
+      return ip
+    }
+
+    function displayResponse(data) {
+      const responseSection = document.getElementById('responseSection')
+      const responseOutput = document.getElementById('responseOutput')
+      responseSection.style.display = 'block'
+      responseOutput.textContent = JSON.stringify(data, null, 2)
+    }
+
+    // Test POST endpoint
+    document.getElementById('testForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+
+      const sender = document.getElementById('sender').value
+      const receiver = document.getElementById('receiver').value
+      const senderIP = resolveDomainToIP(sender)
+      const receiverIP = resolveDomainToIP(receiver)
+
+      const formData = new FormData()
+      formData.append('sender', sender)
+      formData.append('receiver', receiver)
+      formData.append('senderIP', senderIP)
+      formData.append('receiverIP', receiverIP)
+      formData.append('message', document.getElementById('message').value)
+      formData.append('protocol', document.getElementById('protocol').value)
+      formData.append('transferMode', document.getElementById('transferMode').value)
+      formData.append('format', document.getElementById('format').value)
+      formData.append('chunkSize', 32)
+
+      const fileInput = document.getElementById('file')
+      if (fileInput.files && fileInput.files[0]) {
+        formData.append('file', fileInput.files[0])
+      }
+
+      try {
+        const response = await fetch('/api/v1/application/send-to-presentation', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await response.json()
+        displayResponse(data)
+      } catch (error) {
+        displayResponse({ error: error.message })
+      }
+    })
+
+    // Test GET endpoint
+    async function testGetEndpoint() {
+      const envelopeId = document.getElementById('envelopeId').value.trim()
+      if (!envelopeId) {
+        alert('Please enter an envelope ID')
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/v1/application/send-to-presentation/${envelopeId}`)
+        const data = await response.json()
+        displayResponse(data)
+      } catch (error) {
+        displayResponse({ error: error.message })
+      }
+    }
+
+    window.testGetEndpoint = testGetEndpoint
+  </script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Transfer Simulation</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/sidebar.css" />
+  <style>
+    .protocol-card {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .protocol-option {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #0b1322;
+    }
+    .protocol-option:hover {
+      border-color: var(--accent);
+      background: #0f1b33;
+    }
+    .protocol-option.selected {
+      border-color: var(--accent);
+      background: #0f1b33;
+    }
+    .protocol-option input[type="radio"] {
+      margin-right: 8px;
+    }
+    .protocol-details {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .transfer-log {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    .log-time {
+      color: var(--muted);
+      margin-right: 8px;
+    }
+    .log-info { color: #3b82f6; }
+    .log-success { color: var(--good); }
+    .log-error { color: #ef4444; }
+    .progress-bar {
+      width: 100%;
+      height: 24px;
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-600));
+      width: 0%;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .stat-box {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .nav-links {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .nav-links a {
+      color: var(--accent);
+      text-decoration: none;
+      margin-right: 16px;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="bg">
+  <script src="/sidebar.js"></script>
+  <script>document.write(createSidebar('transfer'))</script>
+  
+  <div class="content-with-sidebar">
+  <header class="topbar">
+    <div class="brand">File Transfer Simulator</div>
+  </header>
+  <main class="shell">
+    <section class="card">
+      <h1>File Transfer Protocol Simulator</h1>
+      <p class="muted">Simulate file transfer using HTTP or FTP protocol with real-time progress tracking.</p>
+      
+      <form id="transfer-form" class="grid">
+        <div class="row">
+          <label>Source Host
+            <input name="source" id="source" required placeholder="192.168.1.10" value="192.168.1.10" />
+          </label>
+          <label>Destination Host
+            <input name="destination" id="destination" required placeholder="192.168.1.20" value="192.168.1.20" />
+          </label>
+        </div>
+
+        <label>Select Transfer Protocol</label>
+        <div class="protocol-card">
+          <div class="protocol-option selected" id="http-option">
+            <div>
+              <input type="radio" name="protocol" value="http" id="protocol-http" checked />
+              <label for="protocol-http" style="cursor: pointer;"><strong>HTTP</strong></label>
+            </div>
+            <div class="protocol-details">
+              Port: 80/443 • Stateless • Request/Response
+            </div>
+          </div>
+          <div class="protocol-option" id="ftp-option">
+            <div>
+              <input type="radio" name="protocol" value="ftp" id="protocol-ftp" />
+              <label for="protocol-ftp" style="cursor: pointer;"><strong>FTP</strong></label>
+            </div>
+            <div class="protocol-details">
+              Port: 21 • Stateful • Control + Data Channel
+            </div>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <div class="dz-inner">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m-7-7h14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>
+            <div><strong>Drag & drop</strong> a file here or <span class="link" id="pick">browse</span></div>
+            <div class="muted small" id="fileInfo">No file selected</div>
+          </div>
+          <input type="file" id="file" name="file" hidden />
+        </div>
+
+        <div class="row">
+          <label>Transfer Mode
+            <select id="mode" name="mode">
+              <option value="binary" selected>Binary</option>
+              <option value="ascii">ASCII</option>
+            </select>
+          </label>
+          <label>Chunk Size (KB)
+            <input type="number" name="chunkSize" id="chunkSize" value="64" min="8" max="1024" />
+          </label>
+        </div>
+
+        <button type="submit" class="primary" id="transferBtn">Initiate Transfer</button>
+        <button type="button" id="stopBtn" style="display: none; background: #ef4444; border-color: #ef4444;">Stop Transfer</button>
+      </form>
+
+      <div id="transferStatus" style="display: none;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Transferred</div>
+            <div class="stat-value" id="transferred">0 KB</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Speed</div>
+            <div class="stat-value" id="speed">0 KB/s</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Time Elapsed</div>
+            <div class="stat-value" id="elapsed">0s</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="status">Idle</div>
+          </div>
+        </div>
+
+        <div class="transfer-log" id="transferLog"></div>
+      </div>
+
+  </main>
+  <footer class="footer">Protocol Simulation • Educational Purpose</footer>
+  </div>
+  <script src="/transfer.js"></script>
+</body>
+</html>

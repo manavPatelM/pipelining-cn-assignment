@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Topology Builder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #f5f7fb; }
+        header { background: #0d6efd; color: #fff; }
+        .toolbar button { width: 100%; }
+        .workspace-wrapper { 
+            position: relative; 
+            height: calc(100vh - 120px);  /* Increased height */
+            background: #fff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: .5rem; 
+            overflow: hidden; 
+        }
+        #workspace { position: absolute; inset: 0; }
+        #wires { position: absolute; inset: 0; pointer-events: none; }
+        .wire { stroke: #2b7ce9; stroke-width: 3; pointer-events: auto; }
+        .wire.active { stroke: #dc3545; }
+        .device { position: absolute; width: 64px; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; background: #ffffff; border: 1px solid #dee2e6; border-radius: .5rem; box-shadow: 0 2px 8px rgba(16,24,40,.06); cursor: grab; user-select: none; }
+        .device:active { cursor: grabbing; }
+        .device.selected { outline: 3px solid #19875466; }
+        .device .bi { font-size: 28px; color: #0d6efd; }
+        .label { font-size: .8rem; font-weight: 600; color: #334155; }
+        .status { min-height: 24px; }
+        .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: 1rem; }
+        .scroll { overflow: auto; max-height: calc(100vh - 220px); } /* Adjusted for new workspace size */
+        
+        /* Custom scrollbar for the log panel */
+        .scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .scroll::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        .scroll::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <header class="py-3 shadow-sm">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">Hybrid Topology Builder</h5>
+                <div class="d-flex align-items-center">
+                    <a href="/" class="btn btn-outline-light btn-sm me-3" style="text-decoration: none;">
+                        <i class="bi bi-arrow-left"></i> Back to Simulator
+                    </a>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light btn-sm" id="btnReset"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                    <button class="btn btn-danger btn-sm" id="btnClear"><i class="bi bi-trash"></i> Clear All</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container-fluid mt-3">
+        <div class="row g-3">
+            <div class="col-12 col-lg-3">
+                <div class="panel mb-3">
+                    <h6 class="mb-3">Devices</h6>
+                    <div class="row g-2 toolbar">
+                        <div class="col-4"><button class="btn btn-primary" id="addRouter"><i class="bi bi-router"></i><br>Router</button></div>
+                        <div class="col-4"><button class="btn btn-primary" id="addSwitch"><i class="bi bi-hdd-network"></i><br>Switch</button></div>
+                        <div class="col-4"><button class="btn btn-primary" id="addPC"><i class="bi bi-pc"></i><br>PC</button></div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Connections</h6>
+                    <div class="row g-2 toolbar">
+                        <div class="col-12"><button class="btn btn-success" id="connectMode"><i class="bi bi-link-45deg"></i> Connect</button></div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Select Component</h6>
+                    <div class="mb-3">
+                        <select class="form-select" id="componentSelect">
+                            <option value="">-- Select a component --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline-danger w-100 mt-2" id="deleteSelectedComponent"><i class="bi bi-x-circle"></i> Delete Selected Component</button>
+                </div>
+
+                <div class="panel mb-3">
+                    <h6 class="mb-3">Send Message</h6>
+                    <div class="mb-2">
+                        <label class="form-label">Sender</label>
+                        <select class="form-select" id="sender"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Receiver</label>
+                        <select class="form-select" id="receiver"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Message</label>
+                        <input type="text" class="form-control" id="message" placeholder="Enter message">
+                    </div>
+                    <button class="btn btn-primary w-100" id="sendBtn"><i class="bi bi-send"></i> Send</button>
+                </div>
+
+                <div class="panel">
+                    <h6 class="mb-2">Result of Sent Message</h6>
+                    <div class="scroll" id="log"><div class="text-muted">No messages yet.</div></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-9">
+                <div class="workspace-wrapper">
+                    <svg id="wires"></svg>
+                    <div id="workspace"></div>
+                </div>
+                <div class="mt-2 small text-muted status" id="status">Ready. Add devices to begin.</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        const wires = document.getElementById('wires');
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        const componentSelect = document.getElementById('componentSelect');
+        const deleteSelectedComponentBtn = document.getElementById('deleteSelectedComponent');
+
+        const senderSel = document.getElementById('sender');
+        const receiverSel = document.getElementById('receiver');
+
+        const addRouterBtn = document.getElementById('addRouter');
+        const addSwitchBtn = document.getElementById('addSwitch');
+        const addPCBtn = document.getElementById('addPC');
+        const connectBtn = document.getElementById('connectMode');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('btnClear');
+        const resetBtn = document.getElementById('btnReset');
+
+        const DEVICE_ICON = { Router: 'router', Switch: 'hdd-network', PC: 'pc' };
+        const CONNECTION_RULES = { Router: ['Router','Switch','PC'], Switch: ['Router','Switch','PC'], PC: ['Router','Switch'] };
+
+        let deviceCounters = { Router: 1, Switch: 1, PC: 1 };
+        let devices = new Map(); // id -> {id,type,label,x,y,el}
+        let edges = new Set();   // key "a|b" with a<b
+
+        let selection = null; // selected device id
+        let connectMode = false;
+        let firstForConnect = null;
+
+        function updateStatus(msg) { statusEl.textContent = msg; }
+
+        function deviceKey(a, b) {
+            return a < b ? `${a}|${b}` : `${b}|${a}`;
+        }
+
+        function addToSelects(id, label) {
+            const o1 = new Option(label, id);
+            const o2 = new Option(label, id);
+            senderSel.add(o1);
+            receiverSel.add(o2);
+        }
+
+        function removeFromSelects(id) {
+            for (const sel of [senderSel, receiverSel]) {
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === id) { sel.remove(i); break; }
+                }
+            }
+        }
+
+        function updateComponentSelect() {
+            componentSelect.innerHTML = '<option value="">-- Select a component --</option>';
+            
+            // Add devices to the select
+            for (const [id, device] of devices) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = `${device.label} (${device.type})`;
+                componentSelect.appendChild(option);
+            }
+            
+            // Add connections to the select
+            for (const key of edges) {
+                const [a, b] = key.split('|');
+                const deviceA = devices.get(a);
+                const deviceB = devices.get(b);
+                if (deviceA && deviceB) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${deviceA.label} ↔ ${deviceB.label} (Connection)`;
+                    componentSelect.appendChild(option);
+                }
+            }
+        }
+
+        function log(message, isError = false) {
+            if (logEl.children.length === 1 && logEl.firstElementChild.classList.contains('text-muted')) {
+                logEl.innerHTML = '';
+            }
+            const div = document.createElement('div');
+            div.className = `p-2 mb-2 rounded ${isError ? 'bg-danger-subtle border border-danger-subtle' : 'bg-success-subtle border border-success-subtle'}`;
+            const time = new Date().toLocaleTimeString();
+            div.innerHTML = `<small class="text-muted">${time}</small><br>${message}`;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function createDevice(type, x, y, idNum = null, label = null) {
+            // Calculate the next available ID for this device type
+            if (idNum === null) {
+                idNum = deviceCounters[type]++;
+            } else {
+                // If we're creating a device with a specific ID, update the counter if needed
+                deviceCounters[type] = Math.max(deviceCounters[type], idNum + 1);
+            }
+            
+            const id = `${type[0].toLowerCase()}${idNum}`;
+            const deviceLabel = label || (type === 'Switch' ? 'SW' : type === 'Router' ? 'R' : 'PC') + idNum;
+
+            const el = document.createElement('div');
+            el.className = 'device';
+            el.dataset.id = id;
+            el.dataset.type = type;
+            el.innerHTML = `<i class="bi bi-${DEVICE_ICON[type]}"></i><div class="label">${deviceLabel}</div>`;
+
+            if (x === undefined || y === undefined) {
+                x = 40 + Math.random() * (workspace.clientWidth - 120);
+                y = 40 + Math.random() * (workspace.clientHeight - 120);
+            }
+            positionDeviceEl(el, x, y);
+
+            workspace.appendChild(el);
+            devices.set(id, { id, type, label: deviceLabel, x, y, el });
+            addToSelects(id, deviceLabel);
+            updateComponentSelect();
+
+            makeDraggable(el);
+            el.addEventListener('click', onDeviceClick);
+
+            updateStatus(`${type} ${deviceLabel} added`);
+            return id;
+        }
+
+        function positionDeviceEl(el, x, y) {
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+        }
+
+        function centerOf(id) {
+            const d = devices.get(id);
+            const rect = d.el.getBoundingClientRect();
+            const base = workspace.getBoundingClientRect();
+            return { x: rect.left - base.left + rect.width / 2, y: rect.top - base.top + rect.height / 2 };
+        }
+
+        function redrawWires() {
+            wires.setAttribute('width', workspace.clientWidth);
+            wires.setAttribute('height', workspace.clientHeight);
+            wires.innerHTML = '';
+            for (const key of edges) {
+                const [a, b] = key.split('|');
+                const ca = centerOf(a);
+                const cb = centerOf(b);
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', ca.x);
+                line.setAttribute('y1', ca.y);
+                line.setAttribute('x2', cb.x);
+                line.setAttribute('y2', cb.y);
+                line.setAttribute('class', 'wire');
+                line.dataset.a = a; line.dataset.b = b;
+                wires.appendChild(line);
+            }
+        }
+
+        function onDeviceClick(e) {
+            const id = e.currentTarget.dataset.id;
+            if (connectMode) {
+                if (!firstForConnect) {
+                    firstForConnect = id;
+                    updateStatus('Connect: choose second device');
+                    return;
+                } else {
+                    if (firstForConnect === id) {
+                        updateStatus('Cannot connect device to itself');
+                        firstForConnect = null; connectMode = false; connectBtn.classList.remove('active');
+                        return;
+                    }
+                    const a = firstForConnect, b = id;
+                    const da = devices.get(a), db = devices.get(b);
+                    if (!CONNECTION_RULES[da.type].includes(db.type)) {
+                        updateStatus('Invalid connection between these device types');
+                        firstForConnect = null; connectMode = false; connectBtn.classList.remove('active');
+                        return;
+                    }
+                    const key = deviceKey(a,b);
+                    if (!edges.has(key)) {
+                        edges.add(key);
+                        redrawWires();
+                        updateComponentSelect();
+                        updateStatus(`Connected ${da.label} ↔ ${db.label}`);
+                    } else {
+                        updateStatus('These devices are already connected');
+                    }
+                    firstForConnect = null; connectMode = false; connectBtn.classList.remove('active');
+                    return;
+                }
+            }
+            // selection toggle
+            if (selection && selection !== id) devices.get(selection).el.classList.remove('selected');
+            selection = id;
+            devices.get(id).el.classList.toggle('selected');
+            if (!devices.get(id).el.classList.contains('selected')) selection = null;
+            
+            // Update the component select to match
+            componentSelect.value = id;
+        }
+
+        function makeDraggable(el) {
+            let startX = 0, startY = 0, origX = 0, origY = 0, dragging = false;
+            function onDown(ev) {
+                dragging = true;
+                const id = el.dataset.id;
+                const d = devices.get(id);
+                startX = ev.clientX; startY = ev.clientY; origX = d.x; origY = d.y;
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            }
+            function onMove(ev) {
+                if (!dragging) return;
+                const id = el.dataset.id;
+                const d = devices.get(id);
+                d.x = Math.min(Math.max(0, origX + (ev.clientX - startX)), workspace.clientWidth - el.offsetWidth);
+                d.y = Math.min(Math.max(0, origY + (ev.clientY - startY)), workspace.clientHeight - el.offsetHeight);
+                positionDeviceEl(el, d.x, d.y);
+                redrawWires();
+            }
+            function onUp() {
+                dragging = false;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            }
+            el.addEventListener('mousedown', onDown);
+        }
+
+        function deleteSelectedComponent() {
+            const selectedValue = componentSelect.value;
+            if (!selectedValue) {
+                updateStatus('Please select a component from the dropdown first');
+                return;
+            }
+            
+            // Check if it's a connection (contains '|')
+            if (selectedValue.includes('|')) {
+                // It's a connection
+                if (edges.delete(selectedValue)) {
+                    redrawWires();
+                    updateComponentSelect();
+                    updateStatus('Connection removed');
+                }
+            } else {
+                // It's a device
+                const id = selectedValue;
+                const d = devices.get(id);
+                if (d) {
+                    d.el.remove();
+                    devices.delete(id);
+                    // remove edges tied to id
+                    const toRemove = [];
+                    for (const key of edges) { const [a,b] = key.split('|'); if (a === id || b === id) toRemove.push(key); }
+                    toRemove.forEach(k => edges.delete(k));
+                    redrawWires();
+                    removeFromSelects(id);
+                    updateComponentSelect();
+                    if (selection === id) selection = null;
+                    updateStatus('Device removed');
+                }
+            }
+        }
+
+        function selectComponentFromDropdown() {
+            const selectedValue = componentSelect.value;
+            if (!selectedValue) {
+                // Deselect everything
+                if (selection) {
+                    devices.get(selection).el.classList.remove('selected');
+                    selection = null;
+                }
+                return;
+            }
+            
+            // Check if it's a connection (contains '|')
+            if (selectedValue.includes('|')) {
+                // It's a connection - we can't select it visually, just inform the user
+                const [a, b] = selectedValue.split('|');
+                const deviceA = devices.get(a);
+                const deviceB = devices.get(b);
+                if (deviceA && deviceB) {
+                    updateStatus(`Selected connection: ${deviceA.label} ↔ ${deviceB.label}`);
+                }
+                // Deselect any device
+                if (selection) {
+                    devices.get(selection).el.classList.remove('selected');
+                    selection = null;
+                }
+            } else {
+                // It's a device
+                const id = selectedValue;
+                if (selection && selection !== id) devices.get(selection).el.classList.remove('selected');
+                selection = id;
+                devices.get(id).el.classList.add('selected');
+                updateStatus(`Selected device: ${devices.get(id).label}`);
+            }
+        }
+
+        function clearAll() {
+            if (!confirm('Clear entire topology?')) return;
+            workspace.innerHTML = '';
+            wires.innerHTML = '';
+            devices.clear();
+            edges.clear();
+            senderSel.innerHTML = '';
+            receiverSel.innerHTML = '';
+            deviceCounters = { Router: 1, Switch: 1, PC: 1 };
+            logEl.innerHTML = '<div class="text-muted">No messages yet.</div>';
+            selection = null; connectMode = false; firstForConnect = null;
+            connectBtn.classList.remove('active');
+            updateComponentSelect();
+            updateStatus('Cleared.');
+        }
+
+        function resetSimulation() {
+            // For this simple sim, reset just clears log and wire highlights
+            logEl.innerHTML = '<div class="text-muted">No messages yet.</div>';
+            for (const line of wires.querySelectorAll('.wire')) line.classList.remove('active');
+            updateStatus('Simulation reset.');
+        }
+
+        function buildGraph() {
+            const graph = {};
+            for (const id of devices.keys()) graph[id] = [];
+            for (const key of edges) {
+                const [a,b] = key.split('|');
+                graph[a].push(b); graph[b].push(a);
+            }
+            return graph;
+        }
+
+        function bfs(start, end, graph) {
+            if (start === end) return [start];
+            const q = [[start]]; const seen = new Set([start]);
+            while (q.length) {
+                const path = q.shift();
+                const node = path[path.length - 1];
+                for (const nb of graph[node] || []) {
+                    if (seen.has(nb)) continue;
+                    const np = path.concat(nb);
+                    if (nb === end) return np;
+                    seen.add(nb); q.push(np);
+                }
+            }
+            return null;
+        }
+
+        function getLineBetween(a, b) {
+            const key = deviceKey(a,b);
+            for (const line of wires.querySelectorAll('.wire')) {
+                if (deviceKey(line.dataset.a, line.dataset.b) === key) return line;
+            }
+            return null;
+        }
+
+        function animatePath(path, onDone) {
+            let i = 0;
+            function step() {
+                if (i >= path.length - 1) { onDone(); return; }
+                const a = path[i], b = path[i+1];
+                const line = getLineBetween(a,b);
+                if (!line) { onDone(true); return; }
+                line.classList.add('active');
+                setTimeout(() => { line.classList.remove('active'); i++; step(); }, 600);
+            }
+            step();
+        }
+
+        function sendMessage() {
+            const from = senderSel.value;
+            const to = receiverSel.value;
+            const msg = document.getElementById('message').value.trim();
+            if (!from || !to || !msg) { updateStatus('Select sender/receiver and enter a message'); log('Message failed: missing input', true); return; }
+            if (from === to) { updateStatus('Sender and receiver cannot be same'); log('Message failed: same sender and receiver', true); return; }
+            const graph = buildGraph();
+            const path = bfs(from, to, graph);
+            if (!path) {
+                updateStatus('No path found between devices');
+                const a = devices.get(from).label, b = devices.get(to).label;
+                log(`Message from <b>${a}</b> to <b>${b}</b> failed: No path`, true);
+                return;
+            }
+            const pathLabels = path.map(id => devices.get(id).label).join(' → ');
+            updateStatus(`Sending: ${pathLabels}`);
+            log(`Path: ${pathLabels}`);
+            animatePath(path, (broken) => {
+                if (broken) { log('Message failed: connection broken during traversal', true); return; }
+                const a = devices.get(from).label, b = devices.get(to).label;
+                log(`<b>${a}</b> → <b>${b}</b>: ${msg}`);
+                document.getElementById('message').value = '';
+                updateStatus('Message delivered');
+            });
+        }
+
+        // Create predefined hybrid topology
+        function createPredefinedTopology() {
+            // Clear any existing topology
+            workspace.innerHTML = '';
+            wires.innerHTML = '';
+            devices.clear();
+            edges.clear();
+            senderSel.innerHTML = '';
+            receiverSel.innerHTML = '';
+            deviceCounters = { Router: 1, Switch: 1, PC: 1 };
+            
+            // Create a complex hybrid topology combining star, bus, ring, and mesh topologies
+            
+            const router1 = createDevice('Router', 475, 100, 1, 'R1');
+
+            const switch1 = createDevice('Switch', 100, 100, 1, 'SW1');
+            const switch2 = createDevice('Switch', 250, 100, 2, 'SW2');
+            const switch3 = createDevice('Switch', 700, 100, 3, 'SW3');
+            const switch4 = createDevice('Switch', 850, 100, 4, 'SW4');
+            const switch5 = createDevice('Switch', 250, 250, 5, 'SW5');
+            const switch6 = createDevice('Switch', 150, 350, 6, 'SW6');
+            const switch7 = createDevice('Switch', 350, 350, 7, 'SW7');
+            const switch8 = createDevice('Switch', 250, 450, 8, 'SW8');
+            const switch9 = createDevice('Switch', 750, 250, 9, 'SW9');
+            const switch10 = createDevice('Switch', 650, 350, 10, 'SW10');
+            const switch11 = createDevice('Switch', 850, 350, 11, 'SW11');
+            const switch12 = createDevice('Switch', 750, 450, 12, 'SW12');
+
+            const pc1 = createDevice('PC', 100, 0, 1, 'PC1');
+            const pc2 = createDevice('PC', 250, 0, 2, 'PC2');
+            const pc3 = createDevice('PC', 700, 0, 3, 'PC3');
+            const pc4 = createDevice('PC', 850, 0, 4, 'PC4');
+            const pc5 = createDevice('PC', 975, 100, 5, 'PC5');
+            const pc6 = createDevice('PC', 850, 200, 6, 'PC6');
+            const pc7 = createDevice('PC', 25, 350, 7, 'PC7');
+            const pc8 = createDevice('PC', 250, 540, 8, 'PC8');
+            const pc9 = createDevice('PC', 450, 350, 9, 'PC9');
+            const pc10 = createDevice('PC', 550, 350, 10, 'PC10');
+            const pc11 = createDevice('PC', 750, 540, 11, 'PC11');
+            const pc12 = createDevice('PC', 950, 350, 12, 'PC12');
+
+            edges.add(deviceKey(router1, switch2));
+            edges.add(deviceKey(router1, switch3));
+            edges.add(deviceKey(router1, switch5));
+            edges.add(deviceKey(router1, switch9));
+            edges.add(deviceKey(switch1, switch2));
+            edges.add(deviceKey(switch3, switch4));
+            edges.add(deviceKey(switch5, switch6));
+            edges.add(deviceKey(switch6, switch8));
+            edges.add(deviceKey(switch8, switch7));
+            edges.add(deviceKey(switch7, switch5));
+            edges.add(deviceKey(switch9, switch10));
+            edges.add(deviceKey(switch9, switch11));
+            edges.add(deviceKey(switch9, switch12));
+            edges.add(deviceKey(switch10, switch12));
+            edges.add(deviceKey(switch10, switch11));
+            edges.add(deviceKey(switch11, switch12));
+
+            edges.add(deviceKey(pc1, switch1));
+            edges.add(deviceKey(pc2, switch2));
+            edges.add(deviceKey(pc3, switch3));
+            edges.add(deviceKey(pc4, switch4));
+            edges.add(deviceKey(pc5, switch4));
+            edges.add(deviceKey(pc6, switch4));
+            edges.add(deviceKey(pc7, switch6));
+            edges.add(deviceKey(pc8, switch8));
+            edges.add(deviceKey(pc9, switch7));
+            edges.add(deviceKey(pc10, switch10));
+            edges.add(deviceKey(pc11, switch12));
+            edges.add(deviceKey(pc12, switch11));
+
+            
+            redrawWires();
+            updateComponentSelect();
+            updateStatus('Complex hybrid topology loaded');
+            
+            // Update device counters to continue from the highest used numbers
+            deviceCounters.Router = 2; 
+            deviceCounters.Switch = 13; 
+            deviceCounters.PC = 13; 
+        }
+
+        // Event bindings
+        addRouterBtn.addEventListener('click', () => createDevice('Router'));
+        addSwitchBtn.addEventListener('click', () => createDevice('Switch'));
+        addPCBtn.addEventListener('click', () => createDevice('PC'));
+        connectBtn.addEventListener('click', () => { 
+            connectMode = true; 
+            firstForConnect = null; 
+            connectBtn.classList.add('active'); 
+            updateStatus('Connect: choose first device'); 
+        });
+        componentSelect.addEventListener('change', selectComponentFromDropdown);
+        deleteSelectedComponentBtn.addEventListener('click', deleteSelectedComponent);
+        sendBtn.addEventListener('click', sendMessage);
+        clearBtn.addEventListener('click', clearAll);
+        resetBtn.addEventListener('click', resetSimulation);
+
+        // Resize observer to keep wires in sync on container resize
+        const ro = new ResizeObserver(() => redrawWires());
+        ro.observe(document.querySelector('.workspace-wrapper'));
+
+        // Initialize with predefined topology
+        window.addEventListener('load', createPredefinedTopology);
+        updateStatus('Ready. Complex hybrid topology loaded.');
+    </script>
+</body>
+</html>

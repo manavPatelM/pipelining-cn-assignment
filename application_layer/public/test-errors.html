@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Error Handling Test</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .test-section {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .test-button {
+      margin: 8px 8px 8px 0;
+      padding: 8px 16px;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .test-button:hover {
+      background: var(--accent-600);
+    }
+    .result-box {
+      background: #0f1b33;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .success { color: var(--good); }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+  </style>
+</head>
+<body class="bg">
+  <header class="topbar">
+    <div class="brand">Error Handling Tests</div>
+  </header>
+  <main class="shell">
+    <section class="card">
+      <h1>🧪 Error Handling Test Suite</h1>
+      <p class="muted">Test various error scenarios to verify error handling</p>
+
+      <!-- Test 1: File Type Validation -->
+      <div class="test-section">
+        <h3>Test 1: Invalid File Type</h3>
+        <p class="muted">Upload a .txt file pretending to be .exe (should be blocked)</p>
+        <input type="file" id="test1-file" accept=".txt" />
+        <button class="test-button" onclick="testInvalidFileType()">Run Test</button>
+        <div id="test1-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Test 2: File Size -->
+      <div class="test-section">
+        <h3>Test 2: File Size Validation</h3>
+        <p class="muted">Simulate file size over 100MB (should be rejected)</p>
+        <button class="test-button" onclick="testFileSizeLimit()">Run Test</button>
+        <div id="test2-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Test 3: Missing Fields -->
+      <div class="test-section">
+        <h3>Test 3: Missing Required Fields</h3>
+        <p class="muted">Submit transfer without required fields</p>
+        <button class="test-button" onclick="testMissingFields()">Run Test</button>
+        <div id="test3-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Test 4: Invalid IP -->
+      <div class="test-section">
+        <h3>Test 4: Invalid IP Address</h3>
+        <p class="muted">Use invalid IP address (should be rejected)</p>
+        <button class="test-button" onclick="testInvalidIP()">Run Test</button>
+        <div id="test4-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Test 5: Invalid Protocol -->
+      <div class="test-section">
+        <h3>Test 5: Invalid Protocol</h3>
+        <p class="muted">Use unsupported protocol</p>
+        <button class="test-button" onclick="testInvalidProtocol()">Run Test</button>
+        <div id="test5-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Test 6: Successful Transfer -->
+      <div class="test-section">
+        <h3>Test 6: Valid Transfer</h3>
+        <p class="muted">Test with valid data (should succeed)</p>
+        <input type="file" id="test6-file" accept="image/*,application/pdf" />
+        <button class="test-button" onclick="testValidTransfer()">Run Test</button>
+        <div id="test6-result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <a href="/" style="color: var(--accent); text-decoration: none; margin-right: 16px;">← Message Composer</a>
+        <a href="/transfer" style="color: var(--accent); text-decoration: none;">🔄 File Transfer Simulator</a>
+      </div>
+    </section>
+  </main>
+  <footer class="footer">See ERROR_HANDLING.md for complete documentation</footer>
+  
+  <script>
+    function showResult(testId, message, type = 'info') {
+      const resultBox = document.getElementById(`test${testId}-result`)
+      resultBox.style.display = 'block'
+      resultBox.innerHTML = `<div class="${type}">${message}</div>`
+    }
+
+    async function testInvalidFileType() {
+      const file = document.getElementById('test1-file').files[0]
+      if (!file) {
+        showResult(1, '❌ Please select a file first', 'error')
+        return
+      }
+
+      showResult(1, '⏳ Testing invalid file type...', 'info')
+
+      try {
+        // Create a fake .exe file from the text file
+        const blob = new Blob([file], { type: 'application/x-msdownload' })
+        const fakeExeFile = new File([blob], 'malicious.exe', { type: 'application/x-msdownload' })
+
+        const formData = new FormData()
+        formData.append('protocol', 'http')
+        formData.append('source', '192.168.1.10')
+        formData.append('destination', '192.168.1.20')
+        formData.append('mode', 'binary')
+        formData.append('duration', '10')
+        formData.append('fileSize', fakeExeFile.size)
+        formData.append('fileName', fakeExeFile.name)
+        formData.append('file', fakeExeFile)
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          showResult(1, `✅ Test PASSED: ${data.error.message}<br>Error Code: ${data.error.code}`, 'success')
+        } else {
+          showResult(1, '❌ Test FAILED: Invalid file was accepted', 'error')
+        }
+      } catch (err) {
+        showResult(1, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+
+    async function testFileSizeLimit() {
+      showResult(2, '⏳ Testing file size limit...', 'info')
+
+      try {
+        // Create a fake large file metadata
+        const formData = new FormData()
+        formData.append('protocol', 'http')
+        formData.append('source', '192.168.1.10')
+        formData.append('destination', '192.168.1.20')
+        formData.append('mode', 'binary')
+        formData.append('duration', '100')
+        formData.append('fileSize', '150000000') // 150MB
+        formData.append('fileName', 'largefile.zip')
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok && data.error.code === 'FILE_TOO_LARGE') {
+          showResult(2, `✅ Test PASSED: ${data.error.message}<br>Error Code: ${data.error.code}`, 'success')
+        } else {
+          showResult(2, '❌ Test FAILED: Large file was accepted', 'error')
+        }
+      } catch (err) {
+        showResult(2, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+
+    async function testMissingFields() {
+      showResult(3, '⏳ Testing missing required fields...', 'info')
+
+      try {
+        const formData = new FormData()
+        formData.append('protocol', 'http')
+        // Missing source, destination, fileName
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok && data.error.code === 'VALIDATION_ERROR') {
+          showResult(3, `✅ Test PASSED: ${data.error.message}<br>Error Code: ${data.error.code}`, 'success')
+        } else {
+          showResult(3, '❌ Test FAILED: Missing fields were accepted', 'error')
+        }
+      } catch (err) {
+        showResult(3, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+
+    async function testInvalidIP() {
+      showResult(4, '⏳ Testing invalid IP address...', 'info')
+
+      try {
+        const formData = new FormData()
+        formData.append('protocol', 'http')
+        formData.append('source', '999.999.999.999') // Invalid IP
+        formData.append('destination', '192.168.1.20')
+        formData.append('mode', 'binary')
+        formData.append('duration', '10')
+        formData.append('fileSize', '1000')
+        formData.append('fileName', 'test.txt')
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok && data.error.code === 'VALIDATION_ERROR') {
+          showResult(4, `✅ Test PASSED: ${data.error.message}<br>Error Code: ${data.error.code}<br>Field: ${data.error.field}`, 'success')
+        } else {
+          showResult(4, '❌ Test FAILED: Invalid IP was accepted', 'error')
+        }
+      } catch (err) {
+        showResult(4, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+
+    async function testInvalidProtocol() {
+      showResult(5, '⏳ Testing invalid protocol...', 'info')
+
+      try {
+        const formData = new FormData()
+        formData.append('protocol', 'smtp') // Invalid protocol
+        formData.append('source', '192.168.1.10')
+        formData.append('destination', '192.168.1.20')
+        formData.append('mode', 'binary')
+        formData.append('duration', '10')
+        formData.append('fileSize', '1000')
+        formData.append('fileName', 'test.txt')
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok && data.error.code === 'VALIDATION_ERROR') {
+          showResult(5, `✅ Test PASSED: ${data.error.message}<br>Error Code: ${data.error.code}`, 'success')
+        } else {
+          showResult(5, '❌ Test FAILED: Invalid protocol was accepted', 'error')
+        }
+      } catch (err) {
+        showResult(5, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+
+    async function testValidTransfer() {
+      const file = document.getElementById('test6-file').files[0]
+      if (!file) {
+        showResult(6, '❌ Please select a file first', 'error')
+        return
+      }
+
+      showResult(6, '⏳ Testing valid transfer...', 'info')
+
+      try {
+        const formData = new FormData()
+        formData.append('protocol', 'http')
+        formData.append('source', '192.168.1.10')
+        formData.append('destination', '192.168.1.20')
+        formData.append('mode', 'binary')
+        formData.append('duration', '5')
+        formData.append('fileSize', file.size)
+        formData.append('fileName', file.name)
+        formData.append('file', file)
+
+        const res = await fetch('/api/v1/application/transfer/save', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (res.ok && data.success) {
+          showResult(6, `✅ Test PASSED: Transfer saved successfully<br>Record: ${data.recordPath}<br>File: ${file.name} (${(file.size/1024).toFixed(2)} KB)`, 'success')
+        } else {
+          showResult(6, `❌ Test FAILED: ${data.error?.message || 'Unknown error'}`, 'error')
+        }
+      } catch (err) {
+        showResult(6, `❌ Test ERROR: ${err.message}`, 'error')
+      }
+    }
+  </script>
+</body>
+</html>

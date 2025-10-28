@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transfer History</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/sidebar.css" />
+  <style>
+    .transfer-item {
+      background: #0b1322;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .transfer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .protocol-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .protocol-http {
+      background: #3b82f6;
+      color: white;
+    }
+    .protocol-https {
+      background: #10b981;
+      color: white;
+    }
+    .protocol-ftp {
+      background: #8b5cf6;
+      color: white;
+    }
+    .transfer-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .detail-item {
+      font-size: 13px;
+    }
+    .detail-label {
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body class="bg">
+  <script src="/sidebar.js"></script>
+  <script>document.write(createSidebar('outbox'))</script>
+  
+  <div class="content-with-sidebar">
+  <header class="topbar">
+    <div class="brand">Transfer History</div>
+  </header>
+  <main class="shell">
+    <section class="card">
+      <h1>File Transfer History</h1>
+      <p class="muted">View all simulated file transfers</p>
+      
+      <div id="transferList">
+        <div class="empty-state">Loading transfers...</div>
+      </div>
+
+  </main>
+  <footer class="footer">Transfer records saved in outbox/transfers/</footer>
+  </div>
+  <script>
+    async function loadTransfers() {
+      try {
+        const res = await fetch('/api/v1/application/transfer/list')
+        const data = await res.json()
+        
+        const container = document.getElementById('transferList')
+        
+        if (data.transfers.length === 0) {
+          container.innerHTML = '<div class="empty-state">No transfers yet. <a href="/transfer" style="color: var(--accent);">Start a transfer →</a></div>'
+          return
+        }
+
+        container.innerHTML = data.transfers.map(t => {
+          const protocolClass = t.protocol.toLowerCase()
+          const size = t.file?.size 
+            ? (t.file.size > 1024 * 1024 
+                ? (t.file.size / 1024 / 1024).toFixed(2) + ' MB'
+                : (t.file.size / 1024).toFixed(2) + ' KB')
+            : '0 KB'
+          const speed = t.transfer?.average_speed_kbps 
+            ? t.transfer.average_speed_kbps.toFixed(2) 
+            : '0.00'
+          const duration = t.transfer?.duration_seconds || 0
+          const date = new Date(t.timestamp).toLocaleString()
+          const isMessageComposer = t.meta?.schema?.includes('composer')
+          const sourceType = isMessageComposer ? '📝 Message Composer' : '🔄 File Transfer'
+          
+          return `
+            <div class="transfer-item">
+              <div class="transfer-header">
+                <div>
+                  <span class="protocol-badge protocol-${protocolClass}">${t.protocol}</span>
+                  <strong style="margin-left: 8px;">${t.file.name}</strong>
+                  <span style="margin-left: 8px; font-size: 11px; color: var(--muted);">${sourceType}</span>
+                </div>
+                <div style="color: var(--muted); font-size: 12px;">${date}</div>
+              </div>
+              <div class="transfer-details">
+                <div class="detail-item">
+                  <div class="detail-label">Source</div>
+                  <div>${t.source.host}${t.source.ip ? ` (${t.source.ip})` : ''}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Destination</div>
+                  <div>${t.destination.host}${t.destination.ip ? ` (${t.destination.ip})` : ''}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Data Size</div>
+                  <div>${size}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Duration</div>
+                  <div>${duration}s</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Speed</div>
+                  <div>${speed} KB/s</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Mode</div>
+                  <div>${t.file?.mode ? t.file.mode.toUpperCase() : 'BINARY'}</div>
+                </div>
+              </div>
+            </div>
+          `
+        }).join('')
+      } catch (err) {
+        document.getElementById('transferList').innerHTML = 
+          `<div class="empty-state" style="color: #ef4444;">Error loading transfers: ${err.message}</div>`
+      }
+    }
+
+    loadTransfers()
+  </script>
+</body>
+</html>

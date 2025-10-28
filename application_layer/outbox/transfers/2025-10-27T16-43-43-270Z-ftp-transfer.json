@@ -1,0 +1,36 @@
+{
+  "protocol": "FTP",
+  "timestamp": "2025-10-27T16:43:43.270Z",
+  "source": {
+    "host": "192.168.1.10",
+    "ip": "192.168.1.10",
+    "port": 21
+  },
+  "destination": {
+    "host": "192.168.1.20",
+    "ip": "192.168.1.20",
+    "port": 21
+  },
+  "file": {
+    "name": "ASSIGNMENT (1).pdf",
+    "size": 174262,
+    "path": "outbox\\uploads\\ASSIGNMENT__1_.pdf",
+    "mode": "binary"
+  },
+  "transfer": {
+    "duration_seconds": 0,
+    "average_speed_kbps": null,
+    "status": "completed",
+    "chunks_sent": 3
+  },
+  "protocol_details": {
+    "mode": "TYPE I",
+    "transfer_mode": "PASV",
+    "connection": "binary",
+    "ftp_code": 226
+  },
+  "meta": {
+    "created_at": "2025-10-27T16:43:43.270Z",
+    "schema": "file_transfer.v1"
+  }
+}
