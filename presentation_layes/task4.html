@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 5: Header Field Specification - Presentation Layer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a4d68 0%, #088395 50%, #05bfdb 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .spline-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .spline-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Animated wave background as fallback/alternative */
+        .wave-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 200px;
+            background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.1));
+            animation: wave 10s linear infinite;
+        }
+
+        .wave:nth-child(2) {
+            bottom: 10px;
+            opacity: 0.5;
+            animation: wave 15s linear infinite;
+        }
+
+        .wave:nth-child(3) {
+            bottom: 20px;
+            opacity: 0.3;
+            animation: wave 20s linear infinite;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(0) translateZ(0) scaleY(1);
+            }
+            50% {
+                transform: translateX(-25%) translateZ(0) scaleY(0.8);
+            }
+            100% {
+                transform: translateX(-50%) translateZ(0) scaleY(1);
+            }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+            max-width: 950px;
+            width: 100%;
+            padding: 50px;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #0a4d68 0%, #088395 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 2.5em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 1em;
+            font-weight: 400;
+        }
+
+        .section {
+            margin-bottom: 35px;
+            padding: 28px;
+            background: linear-gradient(135deg, rgba(8, 131, 149, 0.03) 0%, rgba(5, 191, 219, 0.05) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(8, 131, 149, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(8, 131, 149, 0.2);
+            box-shadow: 0 8px 24px rgba(8, 131, 149, 0.08);
+        }
+
+        .section h2 {
+            color: #0a4d68;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #334155;
+            font-weight: 500;
+            font-size: 0.95em;
+            letter-spacing: -0.2px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14.5px;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #088395;
+            box-shadow: 0 0 0 3px rgba(8, 131, 149, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 110px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        button {
+            background: linear-gradient(135deg, #0a4d68 0%, #088395 100%);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 12px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px rgba(8, 131, 149, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(8, 131, 149, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .output-box {
+            background: #1e293b;
+            color: #7dd3fc;
+            padding: 24px;
+            border-radius: 12px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+            font-size: 13.5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 420px;
+            overflow-y: auto;
+            margin-top: 18px;
+            border: 1px solid #334155;
+            line-height: 1.6;
+        }
+
+        .header-display {
+            background: #0f172a;
+            color: #fbbf24;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 14px;
+            border: 2px solid #088395;
+            line-height: 1.7;
+        }
+
+        .header-key {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .header-value {
+            color: #34d399;
+        }
+
+        .info-badge {
+            display: inline-block;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #0a4d68 0%, #088395 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-right: 10px;
+            margin-bottom: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .info-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(8, 131, 149, 0.3);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            padding: 10px 20px;
+            font-size: 14.5px;
+            margin-top: 12px;
+            width: auto;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+        }
+
+        .example {
+            background: rgba(8, 131, 149, 0.08);
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13.5px;
+            border-left: 3px solid #088395;
+        }
+
+        /* Custom Scrollbar */
+        .output-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .output-box::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        .output-box::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .output-box::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Beach Background -->
+    <div class="wave-bg">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+    
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Alternative: Use a public Spline scene -->
+    <div class="spline-container">
+        <script type="module" src="https://unpkg.com/@splinetool/viewer@1.0.42/build/spline-viewer.js"></script>
+        <spline-viewer url="https://prod.spline.design/Uq5bUWAaoRhe0dW9/scene.splinecode"></spline-viewer>
+    </div>
+
+    <div class="container">
+        <h1>Header Field Specification</h1>
+        <p class="subtitle">Task 5: Add header field specifying encryption and compression types</p>
+
+        <!-- Create Header Section -->
+        <div class="section">
+            <h2>Create Data Header</h2>
+            
+            <div class="form-group">
+                <label>Message/Data:</label>
+                <textarea id="messageInput" placeholder="Enter your message or data here...">Hello, this is a test message for the Presentation Layer!</textarea>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Encryption Type:</label>
+                    <select id="encryptionType">
+                        <option value="NONE">None</option>
+                        <option value="AES-256" selected>AES-256</option>
+                        <option value="AES-128">AES-128</option>
+                        <option value="RSA-2048">RSA-2048</option>
+                        <option value="DES">DES (Deprecated)</option>
+                        <option value="3DES">3DES</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Compression Type:</label>
+                    <select id="compressionType">
+                        <option value="NONE">None</option>
+                        <option value="RLE" selected>RLE (Run-Length Encoding)</option>
+                        <option value="HUFFMAN">Huffman</option>
+                        <option value="GZIP">GZIP</option>
+                        <option value="LZ77">LZ77</option>
+                        <option value="DEFLATE">DEFLATE</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Encoding Type:</label>
+                    <select id="encodingType">
+                        <option value="BASE64" selected>Base64</option>
+                        <option value="ASCII">ASCII</option>
+                        <option value="UTF-8">UTF-8</option>
+                        <option value="HEX">Hexadecimal</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Protocol Version:</label>
+                    <select id="protocolVersion">
+                        <option value="1.0" selected>1.0</option>
+                        <option value="1.1">1.1</option>
+                        <option value="2.0">2.0</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="createHeader()">Generate Header</button>
+
+            <div id="headerOutput"></div>
+        </div>
+
+        <!-- Parse Header Section -->
+        <div class="section">
+            <h2>Parse Existing Header</h2>
+            
+            <div class="form-group">
+                <label>Header String (JSON format):</label>
+                <textarea id="headerInput" placeholder='Enter header JSON here, e.g., {"encryption":"AES-256","compression":"RLE",...}'></textarea>
+            </div>
+
+            <button onclick="parseHeader()">Parse Header</button>
+
+            <div id="parseOutput"></div>
+        </div>
+
+        <!-- Full Data Package Section -->
+        <div class="section">
+            <h2>Create Complete Data Package</h2>
+            <p style="color: #64748b; margin-bottom: 15px; font-size: 14px;">
+                Combine header with data payload for transmission to Session Layer
+            </p>
+
+            <button onclick="createDataPackage()">Create Full Package</button>
+
+            <div id="packageOutput"></div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="section">
+            <h2>Header Field Information</h2>
+            <p style="margin-bottom: 18px; color: #475569; line-height: 1.6;">
+                The header field is crucial in the Presentation Layer as it tells the receiving end how to properly 
+                decrypt, decompress, and decode the data. Standard fields include:
+            </p>
+            <div class="info-badge">Encryption Type</div>
+            <div class="info-badge">Compression Type</div>
+            <div class="info-badge">Encoding Type</div>
+            <div class="info-badge">Protocol Version</div>
+            <div class="info-badge">Timestamp</div>
+            <div class="info-badge">Data Length</div>
+            <div class="info-badge">Checksum</div>
+        </div>
+    </div>
+
+    <script>
+        function createHeader() {
+            const message = document.getElementById('messageInput').value;
+            const encryption = document.getElementById('encryptionType').value;
+            const compression = document.getElementById('compressionType').value;
+            const encoding = document.getElementById('encodingType').value;
+            const version = document.getElementById('protocolVersion').value;
+
+            // Create header object
+            const header = {
+                version: version,
+                encryption: encryption,
+                compression: compression,
+                encoding: encoding,
+                timestamp: new Date().toISOString(),
+                dataLength: message.length,
+                checksum: generateChecksum(message)
+            };
+
+            // Display header
+            displayHeader(header);
+        }
+
+        function generateChecksum(data) {
+            // Simple checksum for demonstration
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+                sum += data.charCodeAt(i);
+            }
+            return sum.toString(16).toUpperCase().padStart(8, '0');
+        }
+
+        function displayHeader(header) {
+            const output = document.getElementById('headerOutput');
+            
+            let html = '<div class="header-display">';
+            html += '<strong style="color: #fbbf24;">PRESENTATION LAYER HEADER</strong>\n';
+            html += '<strong style="color: #fbbf24;">═══════════════════════════</strong>\n\n';
+            
+            for (const [key, value] of Object.entries(header)) {
+                html += `<span class="header-key">${key}:</span> <span class="header-value">${value}</span>\n`;
+            }
+            
+            html += '\n<strong style="color: #fbbf24;">JSON Format:</strong>\n';
+            html += JSON.stringify(header, null, 2);
+            html += '</div>';
+            
+            html += '<button class="copy-btn" onclick="copyHeader(\'' + 
+                    JSON.stringify(header).replace(/'/g, "\\'") + 
+                    '\')">Copy Header JSON</button>';
+            
+            output.innerHTML = html;
+
+            // Store for package creation
+            window.currentHeader = header;
+        }
+
+        function parseHeader() {
+            const headerInput = document.getElementById('headerInput').value.trim();
+            const output = document.getElementById('parseOutput');
+
+            if (!headerInput) {
+                output.innerHTML = '<div class="output-box" style="color: #fc8181;">Please enter a header to parse!</div>';
+                return;
+            }
+
+            try {
+                const header = JSON.parse(headerInput);
+                
+                let html = '<div class="output-box" style="color: #68d391;">';
+                html += 'Header parsed successfully!\n\n';
+                html += '<span style="color: #fbbf24;">Parsed Fields:</span>\n';
+                html += '─────────────────\n';
+                
+                for (const [key, value] of Object.entries(header)) {
+                    html += `<span style="color: #60a5fa;">${key}:</span> ${value}\n`;
+                }
+                
+                html += '\n<span style="color: #fbbf24;">Interpretation:</span>\n';
+                html += '─────────────────\n';
+                
+                if (header.encryption && header.encryption !== 'NONE') {
+                    html += `• Data is encrypted using: ${header.encryption}\n`;
+                }
+                if (header.compression && header.compression !== 'NONE') {
+                    html += `• Data is compressed using: ${header.compression}\n`;
+                }
+                if (header.encoding) {
+                    html += `• Data is encoded in: ${header.encoding}\n`;
+                }
+                
+                html += '\n<span style="color: #34d399;">Processing Order (Receiver):</span>\n';
+                html += `1. Decode using ${header.encoding || 'specified encoding'}\n`;
+                html += `2. Decrypt using ${header.encryption || 'specified algorithm'}\n`;
+                html += `3. Decompress using ${header.compression || 'specified method'}\n`;
+                
+                html += '</div>';
+                
+                output.innerHTML = html;
+                
+            } catch (e) {
+                output.innerHTML = '<div class="output-box" style="color: #fc8181;">Error parsing header: ' + 
+                                    e.message + '\n\nPlease ensure the input is valid JSON.</div>';
+            }
+        }
+
+        function createDataPackage() {
+            const message = document.getElementById('messageInput').value;
+            const output = document.getElementById('packageOutput');
+
+            if (!window.currentHeader) {
+                output.innerHTML = '<div class="output-box" style="color: #fc8181;">Please generate a header first!</div>';
+                return;
+            }
+
+            // Simulate encoding the message
+            const encodedData = btoa(message); // Base64 encode
+
+            // Create the complete package
+            const dataPackage = {
+                header: window.currentHeader,
+                payload: encodedData,
+                metadata: {
+                    source: "Presentation Layer",
+                    destination: "Session Layer",
+                    packageSize: encodedData.length + JSON.stringify(window.currentHeader).length
+                }
+            };
+
+            let html = '<div class="output-box">';
+            html += '<span style="color: #fbbf24;">═══════════════════════════════════</span>\n';
+            html += '<span style="color: #fbbf24;">COMPLETE DATA PACKAGE</span>\n';
+            html += '<span style="color: #fbbf24;">═══════════════════════════════════</span>\n\n';
+            
+            html += '<span style="color: #60a5fa;">HEADER SECTION:</span>\n';
+            html += JSON.stringify(dataPackage.header, null, 2) + '\n\n';
+            
+            html += '<span style="color: #60a5fa;">PAYLOAD (Base64 Encoded):</span>\n';
+            html += encodedData.substring(0, 100) + (encodedData.length > 100 ? '...' : '') + '\n\n';
+            
+            html += '<span style="color: #60a5fa;">METADATA:</span>\n';
+            html += JSON.stringify(dataPackage.metadata, null, 2) + '\n\n';
+            
+            html += '<span style="color: #34d399;">Package ready for Session Layer transmission!</span>\n';
+            html += '</div>';
+
+            html += '<button class="copy-btn" onclick="copyPackage(\'' + 
+                    JSON.stringify(dataPackage).replace(/'/g, "\\'") + 
+                    '\')">Copy Full Package</button>';
+
+            output.innerHTML = html;
+        }
+
+        function copyHeader(headerStr) {
+            navigator.clipboard.writeText(headerStr).then(() => {
+                alert('Header copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function copyPackage(packageStr) {
+            navigator.clipboard.writeText(packageStr).then(() => {
+                alert('Complete package copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Auto-generate a sample header on page load
+        window.onload = function() {
+            // Create floating particles
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = (Math.random() * 4 + 2) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        };
+    </script>
+</body>
+</html>

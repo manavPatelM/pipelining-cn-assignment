@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES Encryption & Decryption Utility</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      max-width: 700px;
+      width: 100%;
+      padding: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 2rem;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .step {
+      margin-bottom: 32px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .instruction {
+      color: #718096;
+      font-size: 0.875rem;
+      margin-top: 8px;
+      margin-left: 44px;
+      line-height: 1.5;
+    }
+
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      transition: all 0.3s ease;
+      background: #ffffff;
+      margin-top: 8px;
+    }
+
+    input[type="password"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    input[type="password"]:hover,
+    textarea:hover {
+      border-color: #cbd5e0;
+    }
+
+    input[type="password"]::placeholder,
+    textarea::placeholder {
+      color: #a0aec0;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 16px;
+      margin-top: 36px;
+    }
+
+    button {
+      flex: 1;
+      padding: 18px 32px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-encrypt {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-encrypt:hover {
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-decrypt {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+    }
+
+    .btn-decrypt:hover {
+      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .status-section {
+      margin-top: 32px;
+      min-height: 60px;
+    }
+
+    .status-box {
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    #status {
+      font-style: italic;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 24px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      button {
+        padding: 16px 24px;
+        font-size: 1rem;
+      }
+
+      .step {
+        margin-bottom: 24px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 AES Encryption & Decryption</h1>
+    <p class="subtitle">Secure your data with military-grade encryption</p>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <label for="secretKey">Secret Key</label>
+      </div>
+      <input 
+        type="password" 
+        id="secretKey" 
+        placeholder="Enter a strong secret key"
+        minlength="16"
+        aria-label="Secret encryption key"
+      >
+      <p class="instruction">Use a strong key of at least 16 characters. This key will encrypt and decrypt your data.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <label for="plaintext">Enter Your Text to Encrypt</label>
+      </div>
+      <textarea 
+        id="plaintext" 
+        placeholder="Type or paste your text here..."
+        aria-label="Plain text to encrypt"
+      ></textarea>
+      <p class="instruction">Enter the text you want to encrypt. This will be converted to cipher text.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <label for="encrypted">Encrypted Text</label>
+      </div>
+      <textarea 
+        id="encrypted" 
+        placeholder="Encrypted text will appear here..."
+        aria-label="Encrypted cipher text"
+      ></textarea>
+      <p class="instruction">Copy this encrypted text to share securely, or paste encrypted text here to decrypt it.</p>
+    </div>
+
+    <div class="button-group">
+      <button 
+        type="button"
+        onclick="encryptText()" 
+        class="btn-encrypt"
+        aria-label="Encrypt the text"
+      >
+        🔒 Encrypt
+      </button>
+      <button 
+        type="button"
+        onclick="decryptText()" 
+        class="btn-decrypt"
+        aria-label="Decrypt the text"
+      >
+        🔓 Decrypt
+      </button>
+    </div>
+
+    <div class="status-section">
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    async function encryptText() {
+      const plaintext = document.getElementById('plaintext').value;
+      const key = document.getElementById('secretKey').value;
+      const statusEl = document.getElementById('status');
+      
+      statusEl.style.color = 'black';
+      statusEl.textContent = 'Encrypting...';
+      
+      try {
+        const response = await fetch('/encrypt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plaintext: plaintext, key: key })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          document.getElementById('encrypted').value = data.ciphertext;
+          statusEl.textContent = '✓ Encryption successful! Your data has been securely encrypted.';
+          statusEl.style.color = '#155724';
+          statusEl.style.background = '#d4edda';
+          statusEl.style.padding = '16px 20px';
+          statusEl.style.borderRadius = '12px';
+          statusEl.style.border = '1px solid #c3e6cb';
+        } else {
+          statusEl.textContent = '✗ Error: ' + (data.error || 'Encryption failed');
+          statusEl.style.color = '#721c24';
+          statusEl.style.background = '#f8d7da';
+          statusEl.style.padding = '16px 20px';
+          statusEl.style.borderRadius = '12px';
+          statusEl.style.border = '1px solid #f5c6cb';
+        }
+      } catch (err) {
+        statusEl.textContent = '✗ Network error: ' + err.message;
+        statusEl.style.color = '#721c24';
+        statusEl.style.background = '#f8d7da';
+        statusEl.style.padding = '16px 20px';
+        statusEl.style.borderRadius = '12px';
+        statusEl.style.border = '1px solid #f5c6cb';
+      }
+    }
+
+    async function decryptText() {
+      const ciphertext = document.getElementById('encrypted').value;
+      const key = document.getElementById('secretKey').value;
+      const statusEl = document.getElementById('status');
+      
+      statusEl.style.color = 'black';
+      statusEl.textContent = 'Decrypting...';
+      
+      try {
+        const response = await fetch('/decrypt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ciphertext: ciphertext, key: key })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          document.getElementById('plaintext').value = data.plaintext;
+          statusEl.textContent = '✓ Decryption successful! Your data has been decrypted.';
+          statusEl.style.color = '#155724';
+          statusEl.style.background = '#d4edda';
+          statusEl.style.padding = '16px 20px';
+          statusEl.style.borderRadius = '12px';
+          statusEl.style.border = '1px solid #c3e6cb';
+        } else {
+          statusEl.textContent = '✗ Error: ' + (data.error || 'Decryption failed');
+          statusEl.style.color = '#721c24';
+          statusEl.style.background = '#f8d7da';
+          statusEl.style.padding = '16px 20px';
+          statusEl.style.borderRadius = '12px';
+          statusEl.style.border = '1px solid #f5c6cb';
+        }
+      } catch (err) {
+        statusEl.textContent = '✗ Network error: ' + err.message;
+        statusEl.style.color = '#721c24';
+        statusEl.style.background = '#f8d7da';
+        statusEl.style.padding = '16px 20px';
+        statusEl.style.borderRadius = '12px';
+        statusEl.style.border = '1px solid #f5c6cb';
+      }
+    }
+  </script>
+</body>
+</html>

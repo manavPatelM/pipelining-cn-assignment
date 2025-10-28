@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Layer Tasks - TCP/IP Model</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --accent: #38bdf8;
+      --hover: #0ea5e9;
+      font-family: "Inter", system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2rem;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    p {
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+      text-align: center;
+      max-width: 600px;
+    }
+
+    .task-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .task {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    .task:hover {
+      transform: translateY(-5px);
+      background: var(--hover);
+    }
+
+    a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      display: block;
+    }
+
+    footer {
+      margin-top: 50px;
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Presentation Layer - TCP/IP Model</h1>
+  <p>Select a task below to explore the corresponding demonstration webpage.</p>
+
+  <div class="task-list">
+    <div class="task"><a href="task1.html">1️⃣ Task 1 - Data Encoding</a></div>
+    <div class="task"><a href="task2.html">2️⃣ Task 2 - Data Compression</a></div>
+    <div class="task"><a href="index1.html">3️⃣ Task 3 - AES Encryption & Decryption</a></div>
+    <div class="task"><a href="task4.html">4️⃣ Task 4 - Character Set Translation</a></div>
+    <div class="task"><a href="task5.html">5️⃣ Task 5 - Data Translation (Bin to Text)</a></div>
+    <div class="task"><a href="task6.html">6️⃣ Task 6 - File Format to Byte Stream Transformation</a></div>
+    <div class="task"><a href="index.html">7️⃣ Task 7 - Data Presentation Simulation</a></div>
+  </div>
+
+  <footer>© 2025 TCP/IP Presentation Layer Demo | Created by 23BCE197, 23BCE198, 23BCE208, 23BCE216, 23BCE217, 23BCE222, 23BTM045</footer>
+</body>
+</html>

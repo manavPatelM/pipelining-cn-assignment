@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Text Encoder — Base64 / ASCII</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#38bdf8;--glass:rgba(255,255,255,0.03)}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef8;background:linear-gradient(180deg,#071028 0%,#071428 60%);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:900px;margin:40px auto;padding:24px;background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 18px;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    textarea{width:100%;min-height:160px;padding:12px;background:var(--glass);border-radius:8px;border:1px solid rgba(255,255,255,0.03);color:#eaf4ff;font-size:14px;resize:vertical}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+    select,input[type=button],button{background:#07263a;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,#06b6d4,#3b82f6);color:#042a3a;border:none}
+    .btn-ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03);color:var(--muted)}
+    .row{display:flex;gap:8px}
+    .meta{font-size:13px;color:var(--muted);margin-top:8px}
+    .result{white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;min-height:160px}
+    .foot{margin-top:14px;font-size:12px;color:var(--muted)}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Text Encoder — Base64 & ASCII</h1>
+    <p class="lead">Enter text below and choose an encoding. Click Encode to convert text, or Decode if you have encoded data. Use Copy to copy output to clipboard.</p>
+
+    <div class="grid">
+      <div>
+        <label for="input">Input</label>
+        <textarea id="input" placeholder="Type or paste text here...">Hello — Type something and click Encode</textarea>
+
+        <div class="controls">
+          <select id="encoding">
+            <option value="base64">Base64</option>
+            <option value="ascii">ASCII (codes)</option>
+          </select>
+          <button id="encode" class="btn-primary">Encode</button>
+          <button id="decode">Decode</button>
+          <button id="clear" class="btn-ghost">Clear</button>
+        </div>
+
+        <div class="meta">Tip: For non-ASCII characters (e.g., emoji or accented letters) use Base64.</div>
+      </div>
+
+      <div>
+        <label for="output">Output</label>
+        <div id="output" class="result" tabindex="0" aria-live="polite"></div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="copy">Copy</button>
+          <button id="download">Download .txt</button>
+        </div>
+
+        <div class="foot">Built-in encoder/decoder — runs fully in your browser.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Helpers: Base64 that supports UTF-8 properly
+    function base64EncodeUnicode(str) {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    function base64DecodeUnicode(b64) {
+      // atob on invalid input throws; let caller handle
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const decoder = new TextDecoder();
+      return decoder.decode(bytes);
+    }
+
+    // ASCII encode/decode: numbers separated by space
+    function asciiEncode(str) {
+      const codes = [];
+      for (let i = 0; i < str.length; i++) codes.push(str.charCodeAt(i));
+      return codes.join(' ');
+    }
+
+    function asciiDecode(s) {
+      const parts = s.trim().split(/\s+/);
+      if (parts.length === 0 || (parts.length === 1 && parts[0] === '')) return '';
+      const chars = parts.map(p => {
+        if (!/^[-+]?\d+$/.test(p)) throw new Error('ASCII decode: invalid number: ' + p);
+        const n = Number(p);
+        if (n < 0 || n > 1114111) throw new Error('ASCII decode: code out of range: ' + n);
+        return String.fromCodePoint(n);
+      });
+      return chars.join('');
+    }
+
+    // DOM
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const encodingEl = document.getElementById('encoding');
+    const encodeBtn = document.getElementById('encode');
+    const decodeBtn = document.getElementById('decode');
+    const copyBtn = document.getElementById('copy');
+    const clearBtn = document.getElementById('clear');
+    const downloadBtn = document.getElementById('download');
+
+    function showResult(text) {
+      outputEl.textContent = text;
+    }
+
+    encodeBtn.addEventListener('click', () => {
+      const mode = encodingEl.value;
+      const v = inputEl.value;
+      try {
+        let out = '';
+        if (mode === 'base64') out = base64EncodeUnicode(v);
+        else if (mode === 'ascii') out = asciiEncode(v);
+        else out = v;
+        showResult(out);
+      } catch (e) {
+        showResult('Error: ' + (e && e.message ? e.message : String(e)));
+      }
+    });
+
+    decodeBtn.addEventListener('click', () => {
+      const mode = encodingEl.value;
+      const v = inputEl.value.trim();
+      try {
+        let out = '';
+        if (mode === 'base64') out = base64DecodeUnicode(v);
+        else if (mode === 'ascii') out = asciiDecode(v);
+        else out = v;
+        showResult(out);
+      } catch (e) {
+        showResult('Error: ' + (e && e.message ? e.message : String(e)));
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = outputEl.textContent || '';
+      if (!text) return alert('Nothing to copy');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try { await navigator.clipboard.writeText(text); alert('Copied to clipboard'); } catch (e) { fallbackCopy(text); }
+      } else {
+        fallbackCopy(text);
+      }
+    });
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); alert('Copied to clipboard'); } catch (e) { alert('Copy failed: ' + e); }
+      ta.remove();
+    }
+
+    clearBtn.addEventListener('click', () => { inputEl.value = ''; outputEl.textContent = ''; });
+
+    downloadBtn.addEventListener('click', () => {
+      const text = outputEl.textContent || '';
+      const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'output.txt'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') { e.preventDefault(); encodeBtn.click(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); decodeBtn.click(); }
+    });
+  </script>
+</body>
+</html>

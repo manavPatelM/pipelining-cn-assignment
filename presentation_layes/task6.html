@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File → Byte Stream Visualizer</title>
+  <style>
+    :root{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;--bg:#0f172a;--card:#0b1220;--muted:#9aa4bd;--accent:#7dd3fc}
+    body{margin:0;background:linear-gradient(180deg,#071129 0%, #021024 100%);color:#e6eef8;min-height:100vh;padding:28px}
+    .wrap{max-width:1100px;margin:0 auto}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .card{background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    input[type=file]{display:none}
+    label.btn{background:linear-gradient(90deg,#0ea5e9,#60a5fa);color:#002133;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .info{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+    .meta{font-size:13px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:12px;margin-top:12px}
+    .preview{display:flex;flex-direction:column;gap:8px}
+    .preview img{max-width:100%;border-radius:8px}
+    .section-title{font-size:14px;margin:0 0 8px 0}
+    pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,0.3);padding:8px;border-radius:8px;max-height:360px;overflow:auto}
+    .small{font-size:13px;color:var(--muted)}
+    .row{display:flex;gap:8px;align-items:center}
+    button.action{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:6px 10px;border-radius:8px;cursor:pointer}
+    .hexout{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+    canvas{background:#081226;border-radius:8px;width:100%;height:160px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    @media (max-width:920px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>File → Byte Stream Visualizer</h1>
+      <div style="margin-left:auto;" class="small">Single-file HTML demo • client-side only</div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <label class="btn" for="fileInp">Choose file</label>
+        <input id="fileInp" type="file" />
+        <div class="row">
+          <button id="downloadRaw" class="action" disabled>Download raw bytes</button>
+          <button id="copyBase64" class="action" disabled>Copy base64</button>
+          <button id="copyHex" class="action" disabled>Copy hex</button>
+        </div>
+      </div>
+
+      <div class="info meta" id="meta">No file selected</div>
+
+      <div class="grid">
+        <div class="card">
+          <div>
+            <p class="section-title">Preview / Basic info</p>
+            <div class="preview" id="previewArea">
+              <div class="small">Drop an image or any file above to visualize bytes.</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <p class="section-title">Byte histogram</p>
+            <canvas id="histogram" width="800" height="200"></canvas>
+            <div class="small" style="margin-top:8px">Shows frequency of values 0–255 (log scale)</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="margin-bottom:10px">
+            <p class="section-title">Base64 (preview)</p>
+            <pre id="base64Out" class="hexout small">—</pre>
+          </div>
+
+          <div style="margin-bottom:10px">
+            <p class="section-title">Hex dump (first 1024 bytes)</p>
+            <pre id="hexOut" class="hexout small">—</pre>
+          </div>
+
+          <div>
+            <p class="section-title">Byte array (first 256 values)</p>
+            <pre id="bytesOut" class="hexout small">—</pre>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        Tip: This runs entirely in your browser. No file is uploaded to any server. Want CSV/hex export or a React version? Ask me!
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const fileInp = document.getElementById('fileInp');
+    const meta = document.getElementById('meta');
+    const previewArea = document.getElementById('previewArea');
+    const base64Out = document.getElementById('base64Out');
+    const hexOut = document.getElementById('hexOut');
+    const bytesOut = document.getElementById('bytesOut');
+    const histogramCanvas = document.getElementById('histogram');
+    const downloadRaw = document.getElementById('downloadRaw');
+    const copyBase64 = document.getElementById('copyBase64');
+    const copyHex = document.getElementById('copyHex');
+
+    function humanBytes(n){
+      if(n<1024) return n+' B';
+      if(n<1024*1024) return (n/1024).toFixed(2)+' KB';
+      if(n<1024*1024*1024) return (n/(1024*1024)).toFixed(2)+' MB';
+      return (n/(1024*1024*1024)).toFixed(2)+' GB';
+    }
+
+    fileInp.addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      meta.textContent = `Name: ${file.name} | Size: ${humanBytes(file.size)} | Type: ${file.type || 'unknown'}`;
+
+      // Read as ArrayBuffer
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+
+      // Show preview if image
+      previewArea.innerHTML = '';
+      if(file.type.startsWith('image/')){
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        previewArea.appendChild(img);
+      } else {
+        const p = document.createElement('div');
+        p.className = 'small';
+        p.textContent = `No image preview available. Use the hex/base64/byte outputs below.`;
+        previewArea.appendChild(p);
+      }
+
+      // Base64 (use FileReader for base64 convenience)
+      const base64 = await toBase64(file);
+      base64Out.textContent = base64.slice(0, 4096) + (base64.length>4096 ? '\n\n…(truncated)':'');
+
+      // Hex dump (first 1024 bytes)
+      hexOut.textContent = hexDump(bytes, 1024);
+
+      // Byte list (first 256)
+      bytesOut.textContent = Array.from(bytes.slice(0,256)).join(', ')+(bytes.length>256?', …':'');
+
+      // Draw histogram
+      drawHistogram(bytes);
+
+      // Enable download/copy actions
+      downloadRaw.disabled = false;
+      copyBase64.disabled = false;
+      copyHex.disabled = false;
+
+      // set download raw action
+      downloadRaw.onclick = ()=>{
+        const blob = new Blob([buffer], {type: 'application/octet-stream'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name + '.raw';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      };
+
+      copyBase64.onclick = async ()=>{
+        await navigator.clipboard.writeText(base64);
+        copyBase64.textContent = 'Copied ✓';
+        setTimeout(()=>copyBase64.textContent='Copy base64',900);
+      };
+
+      copyHex.onclick = async ()=>{
+        await navigator.clipboard.writeText(hexDump(bytes, bytes.length));
+        copyHex.textContent = 'Copied ✓';
+        setTimeout(()=>copyHex.textContent='Copy hex',900);
+      };
+    });
+
+    // Helpers
+    function toBase64(file){
+      return new Promise((res,rej)=>{
+        const fr = new FileReader();
+        fr.onload = ()=>{
+          // result is like data:<type>;base64,AAAA...
+          const s = fr.result;
+          const comma = s.indexOf(',');
+          res(s.slice(comma+1));
+        };
+        fr.onerror = rej;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function hexDump(bytes, maxBytes=1024){
+      const len = Math.min(bytes.length, maxBytes);
+      const rows = [];
+      for(let i=0;i<len;i+=16){
+        const row = bytes.slice(i, i+16);
+        const hex = Array.from(row).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+        const ascii = Array.from(row).map(b=> (b>=32 && b<=126)? String.fromCharCode(b):'.').join('');
+        rows.push(i.toString(16).padStart(8,'0') + '  ' + hex.padEnd(16*3-1,' ') + '  |' + ascii + '|');
+      }
+      if(bytes.length>maxBytes) rows.push(`… truncated (${bytes.length-maxBytes} more bytes)`);
+      return rows.join('\n');
+    }
+
+    function drawHistogram(bytes){
+      const freq = new Uint32Array(256);
+      for(const b of bytes) freq[b]++;
+      const canvas = histogramCanvas;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width; const h = canvas.height;
+      // normalize to log scale for visibility
+      const max = Math.max(...freq);
+      ctx.clearRect(0,0,w,h);
+      // background
+      ctx.fillStyle = '#061224'; ctx.fillRect(0,0,w,h);
+      // grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth=1;
+      for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(0,h*(i/4));ctx.lineTo(w,h*(i/4));ctx.stroke();}
+
+      const barW = w/256;
+      for(let i=0;i<256;i++){
+        const v = freq[i];
+        const scaled = max>0 ? Math.log10(v+1)/Math.log10(max+1) : 0;
+        const barH = scaled * (h-10);
+        ctx.fillStyle = 'rgba(125,211,252,0.9)';
+        ctx.fillRect(i*barW, h-barH, Math.max(1,Math.floor(barW-1)), barH);
+      }
+    }
+
+    // Drag & drop support
+    ['dragenter','dragover'].forEach(ev=>{
+      document.addEventListener(ev,e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';document.body.style.outline='3px dashed rgba(125,211,252,0.12)';});
+    });
+    ['dragleave','drop'].forEach(ev=>{
+      document.addEventListener(ev,e=>{e.preventDefault();document.body.style.outline='none';});
+    });
+    document.addEventListener('drop', e=>{
+      if(e.dataTransfer.files && e.dataTransfer.files.length>0){
+        fileInp.files = e.dataTransfer.files;
+        const ev = new Event('change'); fileInp.dispatchEvent(ev);
+      }
+    });
+
+  </script>
+</body>
+</html>
